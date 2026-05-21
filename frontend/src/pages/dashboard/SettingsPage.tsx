@@ -1,0 +1,434 @@
+import { useState, useRef } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
+import { User, Bell, Shield, Link2, Moon, Sun, Save, Camera, Check, Upload, X, CreditCard } from 'lucide-react'
+import { DashboardLayout } from '../../components/layout/DashboardLayout'
+import { Card } from '../../components/ui/index'
+import { Input } from '../../components/ui/index'
+import { Button } from '../../components/ui/Button'
+import { cn } from '../../utils/utils'
+
+// Read real user from localStorage — never fall back to mockUser
+function getStoredUser() {
+  try {
+    const raw = localStorage.getItem('userInfo')
+    if (!raw) return { name: '', email: '', role: '', avatar: '', plan: 'Free' }
+    const parsed = JSON.parse(raw)
+    const u = parsed?.user ?? parsed?.User ?? parsed
+    const plan = u?.plan || u?.subscription || parsed?.plan || parsed?.subscription || 'Free'
+    return {
+      name:   u?.name  ?? '',
+      email:  u?.email ?? '',
+      role:   u?.role  ?? '',
+      avatar: u?.avatar ?? '',
+      plan,
+    }
+  } catch { return { name: '', email: '', role: '', avatar: '', plan: 'Free' } }
+}
+
+const tabs = [
+  { id: 'profile', label: 'Profile', icon: User },
+  { id: 'notifications', label: 'Notifications', icon: Bell },
+  { id: 'security', label: 'Security', icon: Shield },
+  { id: 'subscription', label: 'Subscription', icon: CreditCard },
+  { id: 'connected', label: 'Connected', icon: Link2 },
+]
+
+const subscriptionPlans = [
+  { name: 'Free', price: '0', description: 'Start with the basic JobOps experience.', benefits: ['4 AI searches/month', '10 job matches', 'Weekly summary'] },
+  { name: 'Monthly', price: '20', description: 'Unlock premium AI matching every month.', benefits: ['Unlimited AI matches', 'Resume score boosts', 'Priority job alerts'] },
+  { name: 'Yearly', price: '220', description: 'Best value with full premium access all year.', benefits: ['Everything in Monthly', 'Save $20 annually', 'Early access to referrals'] },
+]
+
+// Friendly, confident, modern avatar options
+const defaultAvatars = [
+  // Male — professional
+  { id: 'male-1',   label: 'Alex',    url: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Alex&backgroundColor=b6e3f4&clothingColor=3c4f5c&facialHairType=BeardLight&hairColor=Auburn' },
+  { id: 'male-2',   label: 'Marcus',  url: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Marcus&backgroundColor=c0aede&clothingColor=5c3317&hairColor=Black' },
+  { id: 'male-3',   label: 'Jordan',  url: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Jordan&backgroundColor=d1f4cc&clothingColor=262e33&hairColor=Brown' },
+  // Female — professional
+  { id: 'female-1', label: 'Priya',   url: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Priya&backgroundColor=ffd5dc&hairColor=Black&clothingColor=ff4500' },
+  { id: 'female-2', label: 'Sarah',   url: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Sarah&backgroundColor=b6e3f4&hairColor=Blonde&clothingColor=3c4f5c' },
+  { id: 'female-3', label: 'Maya',    url: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Maya&backgroundColor=c0aede&hairColor=Auburn&clothingColor=262e33' },
+  // Minimal / illustrated
+  { id: 'min-1',    label: 'Pixel',   url: 'https://api.dicebear.com/7.x/pixel-art/svg?seed=Pixel&backgroundColor=b6e3f4' },
+  { id: 'min-2',    label: 'Sketch',  url: 'https://api.dicebear.com/7.x/pixel-art/svg?seed=Sketch&backgroundColor=ffd5dc' },
+  // Tech / gradient
+  { id: 'tech-1',   label: 'Nova',    url: 'https://api.dicebear.com/7.x/bottts/svg?seed=Nova&backgroundColor=b6e3f4' },
+  { id: 'tech-2',   label: 'Orion',   url: 'https://api.dicebear.com/7.x/bottts/svg?seed=Orion&backgroundColor=c0aede' },
+  { id: 'tech-3',   label: 'Zara',    url: 'https://api.dicebear.com/7.x/bottts/svg?seed=Zara&backgroundColor=d1f4cc' },
+  // Initials gradient
+  { id: 'init-1',   label: 'Bold',    url: 'https://api.dicebear.com/7.x/initials/svg?seed=AJ&backgroundColor=FF4500&fontColor=ffffff' },
+  { id: 'init-2',   label: 'Slate',   url: 'https://api.dicebear.com/7.x/initials/svg?seed=AJ&backgroundColor=1e293b&fontColor=ffffff' },
+  { id: 'init-3',   label: 'Violet',  url: 'https://api.dicebear.com/7.x/initials/svg?seed=AJ&backgroundColor=7c3aed&fontColor=ffffff' },
+]
+
+export default function SettingsPage() {
+  const storedUser = getStoredUser()
+  const [activeTab, setActiveTab] = useState('profile')
+  const [darkMode, setDarkMode] = useState(false)
+  const [saved, setSaved] = useState(false)
+  const [name, setName]   = useState(storedUser.name)
+  const [email, setEmail] = useState(storedUser.email)
+  const [role, setRole]   = useState(storedUser.role)
+  const [location, setLocation] = useState('')
+  const [bio, setBio]     = useState('')
+  const [selectedAvatar, setSelectedAvatar] = useState(
+    storedUser.avatar || defaultAvatars[0].url
+  )
+  const [uploadedAvatar, setUploadedAvatar] = useState<string | null>(null)
+  const [showAvatarPicker, setShowAvatarPicker] = useState(false)
+  const fileRef = useRef<HTMLInputElement>(null)
+
+  const currentAvatar = uploadedAvatar ?? selectedAvatar
+  const [currentPlan, setCurrentPlan] = useState(storedUser.plan || 'Free')
+  const [selectedPlan, setSelectedPlan] = useState(storedUser.plan || 'Free')
+  const [isSubscribing, setIsSubscribing] = useState(false)
+  const [subscriptionMessage, setSubscriptionMessage] = useState('')
+
+  const handleSave = () => {
+    const raw = localStorage.getItem('userInfo')
+    if (raw) {
+      const parsed = JSON.parse(raw)
+      const key = parsed?.user ? 'user' : parsed?.User ? 'User' : null
+      if (key) {
+        parsed[key] = { ...parsed[key], name, email, role, avatar: currentAvatar }
+      } else {
+        parsed.name = name; parsed.email = email; parsed.role = role; parsed.avatar = currentAvatar
+      }
+      localStorage.setItem('userInfo', JSON.stringify(parsed))
+    }
+    // Notify Sidebar (same tab) to re-read localStorage immediately
+    window.dispatchEvent(new Event('userInfoUpdated'))
+    setSaved(true)
+    setTimeout(() => setSaved(false), 2000)
+  }
+
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    if (!file.type.startsWith('image/')) { alert('Please upload an image file.'); return }
+    const reader = new FileReader()
+    reader.onload = ev => {
+      setUploadedAvatar(ev.target?.result as string)
+      setShowAvatarPicker(false)
+    }
+    reader.readAsDataURL(file)
+  }
+
+  const handleSubscribe = async (plan: string) => {
+    if (plan === currentPlan) {
+      setSubscriptionMessage('You already have this plan active.')
+      return
+    }
+
+    setIsSubscribing(true)
+    setSubscriptionMessage('')
+
+    try {
+      const raw = localStorage.getItem('userInfo')
+      const token = raw ? JSON.parse(raw)?.token : null
+
+      const res = await fetch('/api/auth/subscribe', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: token ? `Bearer ${token}` : '',
+        },
+        body: JSON.stringify({ plan }),
+      })
+
+      const data = await res.json()
+      if (!res.ok) {
+        setSubscriptionMessage(data.message || 'Could not update plan.')
+        return
+      }
+
+      const rawStorage = localStorage.getItem('userInfo')
+      if (rawStorage) {
+        const parsed = JSON.parse(rawStorage)
+        parsed.plan = data.plan
+        if (parsed.user) parsed.user.plan = data.plan
+        localStorage.setItem('userInfo', JSON.stringify(parsed))
+      }
+
+      setCurrentPlan(plan)
+      setSelectedPlan(plan)
+      setSubscriptionMessage('Your plan has been updated successfully.')
+      window.dispatchEvent(new Event('userInfoUpdated'))
+    } catch (error) {
+      setSubscriptionMessage('Unable to update plan. Please try again.')
+    } finally {
+      setIsSubscribing(false)
+    }
+  }
+
+  return (
+    <DashboardLayout>
+      <div className="max-w-3xl mx-auto space-y-6">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Settings</h1>
+          <p className="text-gray-500 mt-1">Manage your account preferences</p>
+        </div>
+
+        <div className="flex gap-1 bg-gray-100 p-1 rounded-xl w-fit flex-wrap">
+          {tabs.map(tab => (
+            <button key={tab.id} onClick={() => setActiveTab(tab.id)}
+              className={cn('flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all',
+                activeTab === tab.id ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700')}>
+              <tab.icon className="w-4 h-4" />{tab.label}
+            </button>
+          ))}
+        </div>
+
+        <motion.div key={activeTab} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.2 }}>
+          {activeTab === 'profile' && (
+            <Card className="p-6 space-y-6">
+              {/* Avatar section */}
+              <div className="flex items-center gap-5">
+                <div className="relative group">
+                  <div className="w-20 h-20 rounded-2xl overflow-hidden bg-gray-100 ring-2 ring-[#FF4500]/20 ring-offset-2 transition-all group-hover:ring-[#FF4500]/50">
+                    <img src={currentAvatar} alt="Avatar"
+                      className="w-full h-full object-cover"
+                      onError={e => { (e.target as HTMLImageElement).src = defaultAvatars[0].url }} />
+                  </div>
+                  <button onClick={() => setShowAvatarPicker(true)}
+                    className="absolute -bottom-1 -right-1 w-7 h-7 bg-[#FF4500] rounded-full flex items-center justify-center shadow-md hover:bg-[#e03e00] transition-colors">
+                    <Camera className="w-3.5 h-3.5 text-white" />
+                  </button>
+                </div>
+                <div>
+                  <p className="font-semibold text-gray-900">{name || 'Your Name'}</p>
+                  <p className="text-sm text-gray-400">{role || 'Your Role'}</p>
+                  <button onClick={() => setShowAvatarPicker(true)}
+                    className="text-xs text-[#FF4500] hover:underline mt-1 flex items-center gap-1">
+                    <Camera className="w-3 h-3" /> Change avatar
+                  </button>
+                </div>
+              </div>
+
+              {/* Avatar Picker Modal */}
+              <AnimatePresence>
+                {showAvatarPicker && (
+                  <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                    className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+                    <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
+                      exit={{ scale: 0.95, opacity: 0 }}
+                      className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6">
+                      <div className="flex items-center justify-between mb-4">
+                        <h3 className="font-bold text-gray-900">Choose Your Avatar</h3>
+                        <button onClick={() => setShowAvatarPicker(false)}
+                          className="p-1.5 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100">
+                          <X className="w-4 h-4" />
+                        </button>
+                      </div>
+
+                      {/* Upload option */}
+                      <button onClick={() => fileRef.current?.click()}
+                        className="w-full flex items-center gap-3 p-3 border-2 border-dashed border-[#FF4500]/30 rounded-xl hover:border-[#FF4500] hover:bg-orange-50 transition-all mb-4 group">
+                        <div className="w-9 h-9 bg-orange-50 rounded-xl flex items-center justify-center group-hover:bg-orange-100">
+                          <Upload className="w-4 h-4 text-[#FF4500]" />
+                        </div>
+                        <div className="text-left">
+                          <p className="text-sm font-medium text-gray-900">Upload your photo</p>
+                          <p className="text-xs text-gray-400">JPG, PNG or GIF · Max 5MB</p>
+                        </div>
+                      </button>
+                      <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleFileUpload} />
+
+                      {/* Default avatars grid */}
+                      <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Default Avatars</p>
+                      <div className="grid grid-cols-5 gap-2 max-h-64 overflow-y-auto pr-1">
+                        {defaultAvatars.map(av => (
+                          <button key={av.id} onClick={() => { setSelectedAvatar(av.url); setUploadedAvatar(null); setShowAvatarPicker(false) }}
+                            title={av.label}
+                            className={cn('relative rounded-xl overflow-hidden aspect-square border-2 transition-all hover:scale-105',
+                              selectedAvatar === av.url && !uploadedAvatar
+                                ? 'border-[#FF4500] ring-2 ring-[#FF4500]/20'
+                                : 'border-gray-200 hover:border-[#FF4500]/50')}>
+                            <img src={av.url} alt={av.label} className="w-full h-full object-cover bg-gray-50" />
+                            {selectedAvatar === av.url && !uploadedAvatar && (
+                              <div className="absolute inset-0 bg-[#FF4500]/10 flex items-center justify-center">
+                                <Check className="w-4 h-4 text-[#FF4500]" />
+                              </div>
+                            )}
+                          </button>
+                        ))}
+                      </div>
+
+                      {uploadedAvatar && (
+                        <div className="mt-4 flex items-center gap-3 p-3 bg-green-50 rounded-xl border border-green-200">
+                          <img src={uploadedAvatar} alt="Uploaded" className="w-10 h-10 rounded-xl object-cover" />
+                          <div className="flex-1">
+                            <p className="text-sm font-medium text-green-700">Custom photo active</p>
+                            <button onClick={() => setUploadedAvatar(null)}
+                              className="text-xs text-red-500 hover:underline">Remove</button>
+                          </div>
+                          <Check className="w-4 h-4 text-green-600" />
+                        </div>
+                      )}
+                    </motion.div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              <div className="grid sm:grid-cols-2 gap-4">
+                <Input label="Full Name"  value={name}     onChange={e => setName(e.target.value)} />
+                <Input label="Email" type="email" value={email} onChange={e => setEmail(e.target.value)} />
+                <Input label="Job Title"  value={role}     onChange={e => setRole(e.target.value)} />
+                <Input label="Location"   value={location} onChange={e => setLocation(e.target.value)} placeholder="San Francisco, CA" />
+              </div>
+              <div>
+                <label className="text-sm font-medium text-gray-700">Bio</label>
+                <textarea rows={3} value={bio} onChange={e => setBio(e.target.value)}
+                  placeholder="Tell employers about yourself..."
+                  className="mt-1.5 w-full px-3 py-2 rounded-lg border border-gray-200 text-sm outline-none focus:border-[#FF4500] focus:ring-2 focus:ring-[#FF4500]/10 resize-none" />
+              </div>
+
+              {/* Theme Toggle */}
+              <div className="flex items-center justify-between p-4 bg-gray-50 rounded-xl">
+                <div className="flex items-center gap-3">
+                  {darkMode ? <Moon className="w-5 h-5 text-gray-600" /> : <Sun className="w-5 h-5 text-amber-500" />}
+                  <div>
+                    <p className="text-sm font-medium text-gray-900">Theme</p>
+                    <p className="text-xs text-gray-400">{darkMode ? 'Dark mode' : 'Light mode'}</p>
+                  </div>
+                </div>
+                <button onClick={() => setDarkMode(!darkMode)}
+                  className={cn('relative w-11 h-6 rounded-full transition-colors', darkMode ? 'bg-[#FF4500]' : 'bg-gray-200')}>
+                  <span className={cn('absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform', darkMode && 'translate-x-5')} />
+                </button>
+              </div>
+
+              <Button onClick={handleSave} loading={saved} className="w-full sm:w-auto">
+                <Save className="w-4 h-4" />{saved ? 'Saved!' : 'Save Changes'}
+              </Button>
+            </Card>
+          )}
+
+          {activeTab === 'notifications' && (
+            <Card className="p-6 space-y-4">
+              <h2 className="font-semibold text-gray-900">Notification Preferences</h2>
+              {[
+                { label: 'New Job Matches', desc: 'Get notified when AI finds new matches', defaultOn: true },
+                { label: 'Application Updates', desc: 'Status changes on your applications', defaultOn: true },
+                { label: 'Weekly Summary', desc: 'Weekly digest of your job search activity', defaultOn: false },
+                { label: 'Resume Tips', desc: 'AI-powered resume improvement suggestions', defaultOn: true },
+                { label: 'Marketing Emails', desc: 'Product updates and announcements', defaultOn: false },
+              ].map(item => (
+                <NotificationToggle key={item.label} {...item} />
+              ))}
+            </Card>
+          )}
+
+          {activeTab === 'security' && (
+            <Card className="p-6 space-y-4">
+              <h2 className="font-semibold text-gray-900">Security Settings</h2>
+              <Input label="Current Password" type="password" placeholder="••••••••" />
+              <Input label="New Password" type="password" placeholder="••••••••" />
+              <Input label="Confirm Password" type="password" placeholder="••••••••" />
+              <Button>Update Password</Button>
+              <div className="pt-4 border-t border-gray-100">
+                <h3 className="text-sm font-semibold text-gray-900 mb-3">Two-Factor Authentication</h3>
+                <div className="flex items-center justify-between p-4 bg-gray-50 rounded-xl">
+                  <div>
+                    <p className="text-sm font-medium text-gray-900">Authenticator App</p>
+                    <p className="text-xs text-gray-400">Use an authenticator app for 2FA</p>
+                  </div>
+                  <Button variant="secondary" size="sm">Enable</Button>
+                </div>
+              </div>
+            </Card>
+          )}
+
+          {activeTab === 'subscription' && (
+            <Card className="p-6 space-y-6">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                <div>
+                  <h2 className="font-semibold text-gray-900">Subscription Plans</h2>
+                  <p className="text-sm text-gray-500">Activate a plan to unlock premium AI features and faster job matching.</p>
+                </div>
+                <span className="text-sm text-gray-600">Current plan: <span className="font-semibold text-gray-900">{currentPlan}</span></span>
+              </div>
+
+              <div className="grid gap-4 lg:grid-cols-3">
+                {subscriptionPlans.map(plan => {
+                  const isActive = plan.name === currentPlan
+                  const isSelected = plan.name === selectedPlan
+                  return (
+                    <button key={plan.name} type="button" onClick={() => setSelectedPlan(plan.name)}
+                      className={cn('rounded-3xl border p-5 text-left transition-all focus:outline-none',
+                        isSelected ? 'border-[#FF4500] bg-[#FFF4EC]' : 'border-gray-200 bg-white hover:border-gray-300')}>
+                      <div className="flex items-center justify-between gap-3 mb-3">
+                        <div>
+                          <p className="text-sm font-semibold text-gray-900">{plan.name}</p>
+                          <p className="text-xs text-gray-500">{plan.description}</p>
+                        </div>
+                        <span className="text-lg font-bold text-gray-900">${plan.price}</span>
+                      </div>
+                      <div className="space-y-2 text-xs text-gray-500">
+                        {plan.benefits.map(benefit => (
+                          <div key={benefit} className="flex items-center gap-2">
+                            <span className="h-2 w-2 rounded-full bg-[#FF4500]" />
+                            <span>{benefit}</span>
+                          </div>
+                        ))}
+                      </div>
+                      {isActive && (
+                        <span className="mt-4 inline-flex rounded-full bg-[#EFF6FF] px-3 py-1 text-xs font-semibold text-[#1D4ED8]">Active</span>
+                      )}
+                    </button>
+                  )
+                })}
+              </div>
+
+              {subscriptionMessage && (
+                <div className="rounded-2xl bg-green-50 border border-green-100 p-4 text-sm text-green-700">{subscriptionMessage}</div>
+              )}
+
+              <Button onClick={() => handleSubscribe(selectedPlan)} loading={isSubscribing} disabled={selectedPlan === currentPlan} className="w-full">
+                {selectedPlan === currentPlan ? 'Current plan active' : `Subscribe to ${selectedPlan}`}
+              </Button>
+            </Card>
+          )}
+
+          {activeTab === 'connected' && (
+            <Card className="p-6 space-y-4">
+              <h2 className="font-semibold text-gray-900">Connected Accounts</h2>
+              {[
+                { name: 'Google', desc: 'Sign in with Google', connected: true, color: 'bg-red-50 text-red-600' },
+                { name: 'GitHub', desc: 'Connect your GitHub profile', connected: false, color: 'bg-gray-900 text-white' },
+                { name: 'LinkedIn', desc: 'Import your LinkedIn profile', connected: false, color: 'bg-blue-50 text-blue-600' },
+              ].map(acc => (
+                <div key={acc.name} className="flex items-center justify-between p-4 bg-gray-50 rounded-xl">
+                  <div className="flex items-center gap-3">
+                    <div className={cn('w-9 h-9 rounded-lg flex items-center justify-center text-sm font-bold', acc.color)}>{acc.name[0]}</div>
+                    <div>
+                      <p className="text-sm font-medium text-gray-900">{acc.name}</p>
+                      <p className="text-xs text-gray-400">{acc.desc}</p>
+                    </div>
+                  </div>
+                  <Button variant={acc.connected ? 'danger' : 'secondary'} size="sm">{acc.connected ? 'Disconnect' : 'Connect'}</Button>
+                </div>
+              ))}
+            </Card>
+          )}
+        </motion.div>
+      </div>
+    </DashboardLayout>
+  )
+}
+
+function NotificationToggle({ label, desc, defaultOn }: { label: string; desc: string; defaultOn: boolean }) {
+  const [on, setOn] = useState(defaultOn)
+  return (
+    <div className="flex items-center justify-between py-3 border-b border-gray-50 last:border-0">
+      <div>
+        <p className="text-sm font-medium text-gray-900">{label}</p>
+        <p className="text-xs text-gray-400">{desc}</p>
+      </div>
+      <button onClick={() => setOn(!on)} className={cn('relative w-11 h-6 rounded-full transition-colors', on ? 'bg-[#FF4500]' : 'bg-gray-200')}>
+        <span className={cn('absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform', on && 'translate-x-5')} />
+      </button>
+    </div>
+  )
+}

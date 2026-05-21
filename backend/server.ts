@@ -1,0 +1,53 @@
+import 'dotenv/config';
+import express from "express";
+import type { Request, Response } from "express";
+import cors from "cors";
+import connDB from "./config/mDB";
+import session from 'express-session';
+
+import passport from 'passport';
+import './config/passport';
+import './config/passportGithub';
+import authRoutes from "./routes/authRoutes";
+import userRoutes from "./routes/userRoutes";
+import aiRoutes from "./routes/aiRoutes";
+import chatRoutes from "./routes/chatRoutes";
+import adminRoutes from "./routes/adminRoutes";
+import feedbackRoutes from "./routes/feedbackRoutes";
+import subscriptionRoutes from "./routes/subscriptionRoutes";
+
+const app = express();
+
+app.use(cors());
+app.use(express.json());
+
+app.get("/", (req: Request, res: Response) => {
+  res.send("Server is running");
+});
+
+app.use(
+  session({
+    secret: "jobopssecret",
+    resave: false,
+    saveUninitialized: false,
+  })
+);
+
+app.use(passport.initialize());
+app.use(passport.session());
+
+app.use("/api/auth", authRoutes);
+app.use("/api/user", userRoutes);
+app.use("/api/jobresult", aiRoutes);
+app.use("/api/ai", chatRoutes);
+app.use("/api/admin", adminRoutes);
+app.use("/api/feedback", feedbackRoutes);
+app.use("/api/subscription", subscriptionRoutes);
+
+const port: number = Number(process.env.PORT) || 5000;
+
+connDB().then(() => {
+  app.listen(port, () => {
+    console.log(`Server running at http://localhost:${port}`);
+  });
+});

@@ -1,0 +1,185 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider = "prisma-client-js"
+  
+}
+
+datasource db {
+  provider = "mysql"
+  url      =env("DATABASE_URL")
+}
+
+model User {
+  id                      Int      @id @default(autoincrement())
+  name                    String
+  email                   String   @unique
+  password                String
+  googleID                String?  @unique
+  githubID                String?  @unique
+  plan                    String   @default("Free")
+  createdAt               DateTime @default(now())
+  isAdmin                 Boolean  @default(false)
+  avatar                  String?
+  
+  // Subscription fields
+  subscriptionStatus      String   @default("inactive") // inactive, active, cancelled, expired
+  subscriptionPlan        String   @default("Free") // Free, ProMonthly, ProYearly
+  subscriptionStartDate   DateTime?
+  subscriptionEndDate     DateTime?
+  stripeCustomerId        String?  @unique
+  razorpayCustomerId      String?  @unique
+  paymentProvider         String?  // stripe, razorpay, paypal
+  billingCycle            String?  // monthly, yearly
+  autoRenew               Boolean  @default(true)
+  
+  // Usage tracking
+  aiSearchesUsed          Int      @default(0)
+  maxAISearches           Int      @default(4) // Monthly limit for free plan
+  savedJobsCount          Int      @default(0)
+  maxSavedJobs            Int      @default(10)
+  resumeUploadsCount      Int      @default(0)
+  maxResumeUploads        Int      @default(1)
+  lastResetDate           DateTime @default(now())
+  
+  resumes                 Resume[]
+  savedJobs               SavedJob[]
+  profile                 Profile?
+  workflows               Workflow[]
+  subscriptions           PlanSubscription[]
+  subscriptionHistory     SubscriptionHistory[]
+  usageTracking           UsageTracking[]
+  otp                     OTP[]
+  feedbacks               Feedback[]
+}
+
+model Profile {
+  id          Int      @id @default(autoincrement())
+  bio         String?
+  skills      String?
+  location    String?
+
+  userId      Int      @unique
+  user        User @relation(fields: [userId], references: [id])
+}
+
+model Resume{
+  id        Int       @id @default(autoincrement())
+  fileURL   String
+  uploadeAt DateTime @default(now())
+
+  userId      Int
+  user        User @relation(fields: [userId], references: [id])
+}
+
+
+model SavedJob{
+  id          Int      @id @default(autoincrement())
+  title       String
+  company     String
+  location    String
+  applyLink   String?
+  savedAt     DateTime @default(now())
+
+  userId      Int
+  user        User @relation(fields: [userId], references: [id])
+}
+
+model Workflow {
+  id            Int      @id @default(autoincrement())
+  scheduleType  String
+  prompt        String?
+  active        Boolean  @default(true)
+
+  userId        Int
+  user          User @relation(fields: [userId], references: [id])
+}
+
+model PlanSubscription {
+  id                    Int      @id @default(autoincrement())
+  planName              String   // Free, ProMonthly, ProYearly
+  monthlyPrice          Float    @default(0)
+  yearlyPrice           Float    @default(0)
+  features              String   // JSON string of features array
+  aiSearches            Int      @default(0) // 0 means unlimited
+  savedJobs             Int      @default(0) // 0 means unlimited
+  resumeUploads         Int      @default(0) // 0 means unlimited
+  emailNotifications    Boolean  @default(false)
+  prioritySupport       Boolean  @default(false)
+  advancedAnalytics     Boolean  @default(false)
+  atsScoring            Boolean  @default(false)
+  skillGapAnalysis      Boolean  @default(false)
+  careerRoadmap         Boolean  @default(false)
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+  
+  users                 User[]
+}
+
+model SubscriptionHistory {
+  id                    Int      @id @default(autoincrement())
+  userId                Int
+  user                  User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  planName              String   // The plan name at time of transaction
+  action                String   // upgrade, downgrade, renew, cancel, purchase
+  previousPlan          String?
+  newPlan               String?
+  amount                Float?
+  currency              String   @default("USD")
+  paymentProvider       String?  // stripe, razorpay, paypal
+  paymentId             String?
+  status                String   @default("pending") // pending, completed, failed, refunded
+  transactionId         String?  @unique
+  
+  startDate             DateTime?
+  endDate               DateTime?
+  
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+}
+
+model UsageTracking {
+  id                    Int      @id @default(autoincrement())
+  userId                Int
+  user                  User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  date                  DateTime @default(now())
+  aiSearchesUsed        Int      @default(0)
+  jobsSaved             Int      @default(0)
+  resumesUploaded       Int      @default(0)
+  aiQuestionsAsked      Int      @default(0)
+  
+  createdAt             DateTime @default(now())
+  
+  @@unique([userId, date])
+}
+
+model OTP{
+  id          Int       @id @default(autoincrement())
+  email       String  
+  otp         String
+  expiresAt   DateTime
+  createdAt   DateTime  @default(now())
+
+  userId      Int?
+  user       User? @relation(fields:[userId], references: [id])
+}
+
+model Feedback {
+  id          Int      @id @default(autoincrement())
+  subject     String
+  message     String
+  type        String   // e.g., Feedback | Bug Report | Feature Request | Billing Issue | Account Problem
+  status      String   @default("Pending")
+  priority    String   @default("Medium")
+  reply       String?
+
+  createdAt   DateTime @default(now())
+
+  userId      Int
+  user        User     @relation(fields: [userId], references: [id])
+}
