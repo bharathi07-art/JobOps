@@ -1,9 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Calendar, CreditCard, Download, RotateCcw, AlertCircle } from 'lucide-react';
-import { Button } from '../../components/ui/Button';
-import { PremiumBadge, SubscriptionStatusBar, UsageLimitIndicator } from '../../components/PremiumComponents';
-import { BarChart, LineChart } from '../../components/ui/AdminCharts';
+import { Button } from '../components/ui/Button';
+import { PremiumBadge, SubscriptionStatusBar, UsageLimitIndicator } from '../components/PremiumComponents';
+import { BarChart } from '../components/ui/AdminCharts';
+
 
 interface Subscription {
   subscriptionPlan: string;
@@ -126,7 +127,7 @@ export default function SubscriptionManagement() {
             >
               <SubscriptionStatusBar
                 plan={subscription.subscriptionPlan}
-                endDate={subscription.subscriptionEndDate}
+                endDate={subscription.subscriptionEndDate ? new Date(subscription.subscriptionEndDate) : undefined}
                 billingCycle={subscription.billingCycle}
               />
             </motion.div>

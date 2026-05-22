@@ -7,8 +7,10 @@ import {
   getUserUsageAnalytics,
   SUBSCRIPTION_PLANS,
   incrementUsage,
+  getLockedFeaturesForPlan,
 } from '../services/subscriptionService';
 import { PrismaClient } from '@prisma/client';
+
 
 const prisma = new PrismaClient();
 
@@ -27,7 +29,23 @@ export const getCurrentSubscription = async (req: AuthRequest, res: Response): P
     }
 
     const subscription = await getUserSubscription(req.user.id);
+
+    // Premium data guard: if not active, canUsePremium must be false and locked features should be enforced.
+    // (Front-end uses these fields for locked feature display.)
+    if (subscription.subscriptionStatus !== 'active') {
+      res.status(200).json({
+        ...subscription,
+        canUsePremium: false,
+        premiumLockedFeatures: getLockedFeaturesForPlan('Free'),
+        premiumUnlockedFeatures: [],
+      });
+      return;
+    }
+
     res.status(200).json(subscription);
+
+
+
   } catch (error) {
     console.error('Error fetching subscription:', error);
     res.status(500).json({ message: 'Error fetching subscription' });

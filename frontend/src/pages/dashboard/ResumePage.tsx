@@ -1,4 +1,7 @@
 import { useState, useCallback, useRef } from 'react'
+import { useSubscription } from '../../contexts/SubscriptionContext'
+import { useUpgradePrompt } from '../../hooks/useUpgradePrompt'
+import { UpgradeModal } from '../../components/UpgradeModal'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   Upload, FileText, CheckCircle, Sparkles, X,
@@ -58,7 +61,22 @@ export default function ResumePage() {
     }, 3000)
   }
 
+  const { isPremium } = useSubscription()
+  const {
+    isUpgradeModalOpen,
+    upgradeInfo,
+    showUpgradeModal,
+    closeUpgradeModal,
+    checkAndPromptUpgrade,
+  } = useUpgradePrompt({ featureName: 'Resume Analysis' })
+
   const analyzeFile = useCallback(async (file: File) => {
+    // Gate resume analysis for non-premium users
+    if (!isPremium) {
+      const allowed = checkAndPromptUpgrade('uploadResume')
+      if (!allowed) return
+    }
+
     setFileName(file.name)
     setStage('uploading')
     setUploadProgress(0)
@@ -77,7 +95,7 @@ export default function ResumePage() {
         sendToBackend(file)
       }
     }, 120)
-  }, [])
+  }, [isPremium, checkAndPromptUpgrade])
 
   const sendToBackend = async (file: File) => {
     try {
@@ -150,6 +168,10 @@ export default function ResumePage() {
     const file = e.target.files?.[0]
     if (file) analyzeFile(file)
   }
+
+  // Render UpgradeModal from hook
+  
+  
 
   const reset = () => {
     if (stepTimerRef.current) clearInterval(stepTimerRef.current)
@@ -493,6 +515,15 @@ export default function ResumePage() {
           )}
         </AnimatePresence>
       </div>
+
+      {/* Upgrade modal for gated actions */}
+      <UpgradeModal
+        isOpen={isUpgradeModalOpen}
+        onClose={closeUpgradeModal}
+        reason={upgradeInfo.reason as any}
+        featureName={upgradeInfo.featureName}
+        message={upgradeInfo.message}
+      />
     </DashboardLayout>
   )
 }

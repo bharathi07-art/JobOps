@@ -5,6 +5,7 @@ import { Sparkles, ArrowRight, Briefcase, TrendingUp, Activity, AlertCircle, Map
 import { DashboardLayout } from '../../components/layout/DashboardLayout'
 import { Card, StatCard } from '../../components/ui/index'
 import { weeklyActivity } from '../../data/mockData'
+import { useSubscription } from '../../contexts/SubscriptionContext'
 
 interface MatchedJob {
   title: string
@@ -89,10 +90,21 @@ export default function Dashboard() {
     }
   }, [])
 
+  const subscriptionContext = useSubscription()
+  const { subscription, isPremium } = subscriptionContext
+
   const storedUser = getStoredUserInfo()
-  const planName = storedUser?.plan || storedUser?.subscription || 'Free'
-  const hasNeverActivatedPlan = !storedUser?.plan && !storedUser?.subscription
-  const isPremium = ['Pro', 'Premium', 'Monthly', 'Yearly'].includes(planName)
+  const planName =
+    subscription?.subscriptionPlan ||
+    subscription?.plan ||
+    storedUser?.plan ||
+    storedUser?.subscription ||
+    'Free'
+  const hasNeverActivatedPlan =
+    !subscription?.subscriptionPlan &&
+    !subscription?.plan &&
+    !storedUser?.plan &&
+    !storedUser?.subscription
 
   const jobs = aiResult?.matched_jobs ?? []
   const resumeScore = aiResult?.resume_score ?? 0

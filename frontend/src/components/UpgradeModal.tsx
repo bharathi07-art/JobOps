@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
+
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Zap, Check, ArrowRight } from 'lucide-react';
-import { Button } from '../../components/ui/Button';
+import { Button } from '../components/ui/Button';
 
 interface UpgradeModalProps {
   isOpen: boolean;
@@ -95,7 +96,7 @@ export function UpgradeModal({
   const getDefaultMessage = () => {
     switch (reason) {
       case 'usage-limit':
-        return 'You've reached your monthly limit. Upgrade to access unlimited features.';
+        return "You've reached your monthly limit. Upgrade to access unlimited features.";
       case 'feature-locked':
         return `${featureName} is a premium feature. Unlock it and more with a Pro plan.`;
       default:

@@ -8,7 +8,8 @@ interface UseUpgradePromptOptions {
 }
 
 export function useUpgradePrompt(options: UseUpgradePromptOptions = {}) {
-  const { subscription, canPerformAction, isPremium } = useSubscription();
+  const { canPerformAction, isPremium } = useSubscription();
+
   const [isUpgradeModalOpen, setIsUpgradeModalOpen] = useState(false);
   const [upgradeInfo, setUpgradeInfo] = useState({
     reason: options.reason || 'feature-locked',

@@ -6,6 +6,7 @@ import ForgotPassword from './componenets/ForgotPassword'
 import VerifyOTP from './componenets/VerifyOTP'
 import Dashboard from './pages/dashboard/Dashboard'
 import ResumePage from './pages/dashboard/ResumePage'
+import { SubscriptionProvider } from './contexts/SubscriptionContext'
 import JobsPage from './pages/dashboard/JobsPage'
 import ApplicationsPage from './pages/dashboard/ApplicationsPage'
 import SavedJobsPage from './pages/dashboard/SavedJobsPage'
@@ -43,37 +44,39 @@ function RequireAuth({ children, adminRequired = false }: { children: React.Reac
 
 function App() {
   return (
-    <BrowserRouter>
-      <Routes>
-        {/* Public */}
-        <Route path="/" element={<HomePage />} />
-        <Route path="/login" element={<Login />} />
-        <Route path="/register" element={<Register />} />
-        <Route path="/verify-otp" element={<VerifyOTP />} />
-        <Route path="/forgot-password" element={<ForgotPassword />} />
-        {/* User Dashboard */}
-        <Route path="/dashboard" element={<RequireAuth><Dashboard /></RequireAuth>} />
-        <Route path="/dashboard/resume" element={<RequireAuth><ResumePage /></RequireAuth>} />
-        <Route path="/dashboard/jobs" element={<RequireAuth><JobsPage /></RequireAuth>} />
-        <Route path="/dashboard/applications" element={<RequireAuth><ApplicationsPage /></RequireAuth>} />
-        <Route path="/dashboard/saved" element={<RequireAuth><SavedJobsPage /></RequireAuth>} />
-        <Route path="/dashboard/analytics" element={<RequireAuth><AnalyticsPage /></RequireAuth>} />
-        <Route path="/dashboard/feedback" element={<RequireAuth><FeedbackPage /></RequireAuth>} />
-        <Route path="/dashboard/settings" element={<RequireAuth><SettingsPage /></RequireAuth>} />
-        <Route path="/dashboard/help" element={<RequireAuth><HelpCenterPage /></RequireAuth>} />
-        {/* Admin */}
-        <Route path="/admin" element={<RequireAuth adminRequired><AdminOverview /></RequireAuth>} />
-        <Route path="/admin/analytics" element={<RequireAuth adminRequired><AdminAnalytics /></RequireAuth>} />
-        <Route path="/admin/subscriptions" element={<RequireAuth adminRequired><AdminSubscriptions /></RequireAuth>} />
-        <Route path="/admin/revenue" element={<RequireAuth adminRequired><AdminRevenue /></RequireAuth>} />
-        <Route path="/admin/feedback" element={<RequireAuth adminRequired><AdminFeedback /></RequireAuth>} />
-        <Route path="/admin/users" element={<RequireAuth adminRequired><AdminUsers /></RequireAuth>} />
-        <Route path="/admin/ai-monitor" element={<RequireAuth adminRequired><AdminAIMonitor /></RequireAuth>} />
-        <Route path="/admin/settings" element={<RequireAuth adminRequired><AdminSettings /></RequireAuth>} />
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
-      <AIChatbot />
-    </BrowserRouter>
+    <SubscriptionProvider>
+      <BrowserRouter>
+        <Routes>
+          {/* Public */}
+          <Route path="/" element={<HomePage />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Register />} />
+          <Route path="/verify-otp" element={<VerifyOTP />} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
+          {/* User Dashboard */}
+          <Route path="/dashboard" element={<RequireAuth><Dashboard /></RequireAuth>} />
+          <Route path="/dashboard/resume" element={<RequireAuth><ResumePage /></RequireAuth>} />
+          <Route path="/dashboard/jobs" element={<RequireAuth><JobsPage /></RequireAuth>} />
+          <Route path="/dashboard/applications" element={<RequireAuth><ApplicationsPage /></RequireAuth>} />
+          <Route path="/dashboard/saved" element={<RequireAuth><SavedJobsPage /></RequireAuth>} />
+          <Route path="/dashboard/analytics" element={<RequireAuth><AnalyticsPage /></RequireAuth>} />
+          <Route path="/dashboard/feedback" element={<RequireAuth><FeedbackPage /></RequireAuth>} />
+          <Route path="/dashboard/settings" element={<RequireAuth><SettingsPage /></RequireAuth>} />
+          <Route path="/dashboard/help" element={<RequireAuth><HelpCenterPage /></RequireAuth>} />
+          {/* Admin */}
+          <Route path="/admin" element={<RequireAuth adminRequired><AdminOverview /></RequireAuth>} />
+          <Route path="/admin/analytics" element={<RequireAuth adminRequired><AdminAnalytics /></RequireAuth>} />
+          <Route path="/admin/subscriptions" element={<RequireAuth adminRequired><AdminSubscriptions /></RequireAuth>} />
+          <Route path="/admin/revenue" element={<RequireAuth adminRequired><AdminRevenue /></RequireAuth>} />
+          <Route path="/admin/feedback" element={<RequireAuth adminRequired><AdminFeedback /></RequireAuth>} />
+          <Route path="/admin/users" element={<RequireAuth adminRequired><AdminUsers /></RequireAuth>} />
+          <Route path="/admin/ai-monitor" element={<RequireAuth adminRequired><AdminAIMonitor /></RequireAuth>} />
+          <Route path="/admin/settings" element={<RequireAuth adminRequired><AdminSettings /></RequireAuth>} />
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+        <AIChatbot />
+      </BrowserRouter>
+    </SubscriptionProvider>
   )
 }
 

@@ -1,7 +1,9 @@
 import { useState, useEffect } from "react"
 import { Link, useLocation } from "react-router-dom"
 import { motion, AnimatePresence } from "framer-motion"
-import { LayoutDashboard, Upload, Sparkles, Bookmark, Activity, Settings, User, LogOut, Menu, X, MessageSquare, ClipboardList, HelpCircle } from "lucide-react"
+import { LayoutDashboard, Upload, Sparkles, Bookmark, Activity, Settings, User, LogOut, Menu, X, MessageSquare, ClipboardList, HelpCircle, Lock } from "lucide-react"
+import { useSubscription } from "../../contexts/SubscriptionContext"
+import { useUpgradePrompt } from "../../hooks/useUpgradePrompt"
 import { cn } from "../../utils/utils"
 
 const navItems = [
@@ -94,25 +96,48 @@ function SideBar() {
 
           {/* Navigation */}
           <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
-            {navItems.map((item) => {
-              const isActive = pathname === item.to
-              return (
-                <Link
-                  key={item.to}
-                  to={item.to}
-                  onClick={() => setIsMobileOpen(false)}
-                  className={cn(
-                    "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors",
-                    isActive
-                      ? "bg-orange-50 text-[#FF4500]"
-                      : "text-gray-500 hover:text-gray-900 hover:bg-gray-50"
-                  )}
-                >
-                  <item.icon className={cn("w-5 h-5", isActive && "text-[#FF4500]")} />
-                  {item.label}
-                </Link>
-              )
-            })}
+                      {navItems.map((item) => {
+                        const isActive = pathname === item.to
+                        // define which routes are premium-locked for Free users
+                        const premiumRoutes = ["/dashboard/upload", "/dashboard/jobs", "/dashboard/saved", "/dashboard/applications"]
+                        const isPremiumRoute = premiumRoutes.includes(item.to)
+                        const { isPremium } = useSubscription()
+                        const { showUpgradeModal } = useUpgradePrompt({ featureName: item.label })
+
+                        if (isPremiumRoute && !isPremium) {
+                          return (
+                            <button
+                              key={item.to}
+                              onClick={() => showUpgradeModal('feature-locked', item.label)}
+                              className={cn(
+                                "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors text-gray-500 hover:text-gray-900 hover:bg-gray-50",
+                                isActive ? "bg-orange-50 text-[#FF4500]" : ''
+                              )}
+                            >
+                              <item.icon className={cn("w-5 h-5 text-gray-400")} />
+                              <span className="flex-1 text-left">{item.label}</span>
+                              <Lock className="w-4 h-4 text-gray-400" />
+                            </button>
+                          )
+                        }
+
+                        return (
+                          <Link
+                            key={item.to}
+                            to={item.to}
+                            onClick={() => setIsMobileOpen(false)}
+                            className={cn(
+                              "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors",
+                              isActive
+                                ? "bg-orange-50 text-[#FF4500]"
+                                : "text-gray-500 hover:text-gray-900 hover:bg-gray-50"
+                            )}
+                          >
+                            <item.icon className={cn("w-5 h-5", isActive && "text-[#FF4500]")} />
+                            {item.label}
+                          </Link>
+                        )
+                      })}
           </nav>
 
           {/* User Section */}

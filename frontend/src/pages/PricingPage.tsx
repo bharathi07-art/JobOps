@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import { Check, X, Zap, Crown } from 'lucide-react';
-import { Button } from '../../components/ui/Button';
+import { Check, Zap, Crown } from 'lucide-react';
+import { Button } from '../components/ui/Button';
+
 
 interface Plan {
   id: string;

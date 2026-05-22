@@ -1,6 +1,9 @@
-import React from 'react';
+
 import { motion } from 'framer-motion';
-import { Crown, Zap } from 'lucide-react';
+import { Crown, Zap, Lock } from 'lucide-react';
+import { useUpgradePrompt } from '../hooks/useUpgradePrompt';
+import { UpgradeModal } from './UpgradeModal';
+import { Button } from './ui/Button';
 
 interface PremiumBadgeProps {
   plan: string;
@@ -12,7 +15,6 @@ export function PremiumBadge({ plan, className = '' }: PremiumBadgeProps) {
     return null;
   }
 
-  const isPro = plan.includes('Pro');
   const isYearly = plan.includes('Yearly');
 
   return (
@@ -34,7 +36,6 @@ export function PremiumBadge({ plan, className = '' }: PremiumBadgeProps) {
 export function SubscriptionStatusBar({
   plan,
   endDate,
-  billingCycle,
 }: {
   plan: string;
   endDate?: Date;
@@ -153,25 +154,41 @@ export function UsageLimitIndicator({
 
 export function LockedFeatureIndicator({
   featureName,
-  requiredPlan,
 }: {
   featureName: string;
-  requiredPlan: string;
+  requiredPlan?: string;
 }) {
+  const { isUpgradeModalOpen, upgradeInfo, showUpgradeModal, closeUpgradeModal } = useUpgradePrompt({ featureName });
+
   return (
-    <motion.div
-      initial={{ opacity: 0, scale: 0.95 }}
-      animate={{ opacity: 1, scale: 1 }}
-      className="relative p-4 border-2 border-dashed border-gray-300 rounded-lg text-center bg-gray-50"
-    >
-      <div className="flex flex-col items-center gap-3">
-        <Zap className="w-5 h-5 text-gray-400" />
-        <div>
-          <p className="text-sm font-semibold text-gray-700">{featureName}</p>
-          <p className="text-xs text-gray-600">Premium feature</p>
+    <>
+      <motion.div
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        className="relative p-4 border-2 border-dashed border-gray-300 rounded-lg text-center bg-gray-50"
+      >
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-10 h-10 rounded-full bg-white/60 flex items-center justify-center border border-gray-100">
+            <Lock className="w-5 h-5 text-gray-400" />
+          </div>
+          <div>
+            <p className="text-sm font-semibold text-gray-700">{featureName}</p>
+            <p className="text-xs text-gray-600">Premium feature</p>
+          </div>
+          <div className="mt-3">
+            <Button onClick={() => showUpgradeModal('feature-locked', featureName)} size="sm">Upgrade</Button>
+          </div>
         </div>
-      </div>
-    </motion.div>
+      </motion.div>
+
+      <UpgradeModal
+        isOpen={isUpgradeModalOpen}
+        onClose={closeUpgradeModal}
+        reason={upgradeInfo.reason as any}
+        featureName={upgradeInfo.featureName}
+        message={upgradeInfo.message}
+      />
+    </>
   );
 }
 

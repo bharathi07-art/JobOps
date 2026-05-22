@@ -46,11 +46,78 @@ export const SUBSCRIPTION_PLANS = {
     skillGapAnalysis: true,
     careerRoadmap: true,
   },
+} as const;
+
+export type PlanKey = keyof typeof SUBSCRIPTION_PLANS;
+export type PlanId = 'FREE' | 'PRO_MONTHLY' | 'PRO_YEARLY';
+
+const PLAN_ID_BY_DB_PLAN: Record<PlanKey, PlanId> = {
+  Free: 'FREE',
+  ProMonthly: 'PRO_MONTHLY',
+  ProYearly: 'PRO_YEARLY',
+};
+
+const LOCKED_FEATURES = {
+  unlimitedAISearches: 'Unlimited AI searches',
+  dailyAutomation: 'Daily automation',
+  skillGapAnalysis: 'Skill-gap analysis',
+  advancedAnalytics: 'Advanced analytics',
+  careerRoadmap: 'AI career roadmap',
+  premiumAssistant: 'Premium assistant',
+  unlimitedSavedJobs: 'Unlimited saved jobs',
+} as const;
+
+type LockedFeature = (typeof LOCKED_FEATURES)[keyof typeof LOCKED_FEATURES];
+
+export const getLockedFeaturesForPlan = (plan: PlanKey): LockedFeature[] => {
+  // Required UX: Free shows all premium module lock items. ProMonthly/ProYearly unlock a subset.
+  if (plan === 'Free') {
+    return [
+      LOCKED_FEATURES.unlimitedAISearches,
+      LOCKED_FEATURES.dailyAutomation,
+      LOCKED_FEATURES.skillGapAnalysis,
+      LOCKED_FEATURES.advancedAnalytics,
+      LOCKED_FEATURES.careerRoadmap,
+      LOCKED_FEATURES.premiumAssistant,
+      LOCKED_FEATURES.unlimitedSavedJobs,
+    ];
+  }
+
+  if (plan === 'ProMonthly') {
+    return [LOCKED_FEATURES.careerRoadmap];
+  }
+
+  // ProYearly unlocks everything listed.
+  return [];
+};
+
+const getPlanUsageCounters = (user: any) => {
+  const subscriptionStatus: string = user.subscriptionStatus;
+  const planKey = (user.subscriptionPlan || 'Free') as PlanKey;
+
+  const searchesUsed = user.aiSearchesUsed ?? 0;
+  const searchesLimit = user.maxAISearches ?? 0;
+  const searchesRemaining = searchesLimit === 0 ? 999999 : Math.max(0, searchesLimit - searchesUsed);
+
+  const canUsePremium = subscriptionStatus === 'active' && planKey !== 'Free';
+
+  return {
+    plan: PLAN_ID_BY_DB_PLAN[planKey] ?? 'FREE',
+    searchesUsed,
+    searchesRemaining,
+    canUsePremium,
+    premiumLockedFeatures: getLockedFeaturesForPlan(planKey),
+    premiumUnlockedFeatures: [],
+    subscriptionEndDate: user.subscriptionEndDate || null,
+    billingCycle: user.billingCycle || null,
+    renewalInDays: user.subscriptionEndDate ? Math.max(0, Math.ceil((new Date(user.subscriptionEndDate).getTime() - Date.now()) / (1000 * 60 * 60 * 24))) : null,
+  };
 };
 
 /**
  * Get user subscription status
  */
+
 export const getUserSubscription = async (userId: number) => {
   try {
     const user = await prisma.user.findUnique({
@@ -91,12 +158,39 @@ export const getUserSubscription = async (userId: number) => {
       user.subscriptionPlan = 'Free';
     }
 
-    return user;
+    const counters = getPlanUsageCounters(user);
+
+    // Also provide remaining counters for UI usage indicators
+    const remainingSavedJobs =
+      user.maxSavedJobs === 0 ? 999999 : Math.max(0, user.maxSavedJobs - user.savedJobsCount);
+    const remainingResumeUploads =
+      user.maxResumeUploads === 0 ? 999999 : Math.max(0, user.maxResumeUploads - user.resumeUploadsCount);
+
+    return {
+      ...counters,
+      // Keep legacy fields to avoid breaking existing UI (Pricing/Management/Context)
+      subscriptionPlan: user.subscriptionPlan,
+      subscriptionStatus: user.subscriptionStatus,
+      subscriptionStartDate: user.subscriptionStartDate,
+      subscriptionEndDate: user.subscriptionEndDate,
+      billingCycle: user.billingCycle,
+      autoRenew: user.autoRenew,
+      aiSearchesUsed: user.aiSearchesUsed,
+      maxAISearches: user.maxAISearches,
+      savedJobsCount: user.savedJobsCount,
+      maxSavedJobs: user.maxSavedJobs,
+      resumeUploadsCount: user.resumeUploadsCount,
+      maxResumeUploads: user.maxResumeUploads,
+      lastResetDate: user.lastResetDate,
+      remainingSavedJobs,
+      remainingResumeUploads,
+    };
   } catch (error) {
     console.error('Error fetching user subscription:', error);
     throw error;
   }
 };
+
 
 /**
  * Upgrade or change subscription plan

@@ -2,12 +2,15 @@ import { useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { Button } from '../components/ui/Button'
 
+import { useSubscription } from '../contexts/SubscriptionContext'
+
 export default function VerifyOTP(){
   const location = useLocation();
   const navigate = useNavigate();
   const state = (location.state || {}) as { username?: string; email?: string; password?: string }
   const [otp, setOtp] = useState<string>('')
   const [loading, setLoading] = useState<boolean>(false)
+  const { refreshSubscription } = useSubscription()
 
   const handleVerify = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -26,6 +29,7 @@ export default function VerifyOTP(){
       const data = await res.json()
       if(res.ok){
         localStorage.setItem('userInfo', JSON.stringify(data))
+        try { await refreshSubscription() } catch(e) { /* ignore */ }
         navigate('/dashboard')
       } else {
         alert(data?.message || 'OTP verification failed')

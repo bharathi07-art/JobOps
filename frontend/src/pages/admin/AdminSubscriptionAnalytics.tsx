@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
+
 import { motion } from 'framer-motion';
 import {
   CreditCard,
@@ -12,9 +13,9 @@ import {
 import { AdminLayout } from '../../components/layout/AdminLayout';
 import {
   AdminStatCard,
-  BarChart,
-  LineChart,
+
 } from '../../components/ui/AdminCharts';
+
 
 interface SubscriptionAnalytics {
   summary: {
@@ -88,13 +89,16 @@ export default function AdminSubscriptionAnalytics() {
     );
   }
 
-  const conversionRate =
+  const conversionRateNum =
     analytics.summary.totalUsers > 0
       ? (
           (analytics.summary.activeSubscriptions / analytics.summary.totalUsers) *
           100
-        ).toFixed(1)
+        )
       : 0;
+
+  const conversionRate = conversionRateNum.toFixed(1);
+
 
   const monthlyPlans =
     analytics.yearlyVsMonthly.find((b) => b.billingCycle === 'monthly')?._count || 0;
@@ -311,8 +315,9 @@ export default function AdminSubscriptionAnalytics() {
               ✓ {yearlyPlans > monthlyPlans ? 'Yearly' : 'Monthly'} plans are more popular ({Math.max(monthlyPlans, yearlyPlans)} subscribers)
             </li>
             <li>
-              ✓ Conversion rate is {conversionRate}% - {conversionRate > 20 ? 'Strong' : conversionRate > 10 ? 'Healthy' : 'Needs improvement'}
+              ✓ Conversion rate is {conversionRate}% - {parseFloat(conversionRate) > 20 ? 'Strong' : parseFloat(conversionRate) > 10 ? 'Healthy' : 'Needs improvement'}
             </li>
+
             <li>
               ✓ Total revenue generated: ${analytics.summary.totalRevenue.toLocaleString('en-US', {
                 minimumFractionDigits: 2,

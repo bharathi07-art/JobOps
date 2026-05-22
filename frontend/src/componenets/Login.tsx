@@ -4,6 +4,7 @@ import { motion } from 'framer-motion'
 import { Sparkles, Eye, EyeOff, Mail, Lock } from 'lucide-react'
 import { Button } from '../components/ui/Button'
 import { Input } from '../components/ui/index'
+import { useSubscription } from '../contexts/SubscriptionContext'
 
 export default function Login() {
   const [email, setEmail] = useState<string>()
@@ -11,6 +12,7 @@ export default function Login() {
   const [showPass, setShowPass] = useState<boolean>(false)
   const [loading, setLoading] = useState<boolean>(false)
   const navigate = useNavigate();
+  const { refreshSubscription } = useSubscription()
 
   const handleSubmit =async (e: React.FormEvent) => {
     e.preventDefault()
@@ -25,6 +27,8 @@ export default function Login() {
       const data = await res.json();
       if(res.ok){
         localStorage.setItem("userInfo", JSON.stringify(data));
+        // refresh subscription state immediately so gated UI updates
+        try { await refreshSubscription() } catch(e) { /* ignore */ }
         if(data.isAdmin){
           navigate('/admin')
         }else{

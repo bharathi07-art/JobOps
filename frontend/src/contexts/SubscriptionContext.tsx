@@ -1,6 +1,8 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
+
 
 interface Subscription {
+  // Legacy Prisma-backed fields
   subscriptionPlan: string;
   subscriptionStatus: string;
   subscriptionStartDate: string;
@@ -13,7 +15,12 @@ interface Subscription {
   maxSavedJobs: number;
   resumeUploadsCount: number;
   maxResumeUploads: number;
+
+  // New plan-aware contract fields
+  plan?: 'FREE' | 'PRO_MONTHLY' | 'PRO_YEARLY';
+  canUsePremium?: boolean;
 }
+
 
 interface SubscriptionContextType {
   subscription: Subscription | null;
@@ -34,6 +41,7 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
   const [subscription, setSubscription] = useState<Subscription | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [showFirstTimeModal, setShowFirstTimeModal] = useState(false);
 
   const refreshSubscription = async () => {
     try {
@@ -67,6 +75,18 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     refreshSubscription();
   }, []);
+
+  // show first-time onboarding modal when a newly registered user lands (no subscription and just created)
+  useEffect(() => {
+    if (!loading && subscription && !subscription.subscriptionPlan) {
+      // show modal only for first time (no plan stored)
+      const wasShown = localStorage.getItem('firstTimeSubscriptionShown');
+      if (!wasShown) {
+        setShowFirstTimeModal(true);
+        localStorage.setItem('firstTimeSubscriptionShown', '1');
+      }
+    }
+  }, [loading, subscription]);
 
   const canPerformAction = (
     action: 'aiSearch' | 'saveJob' | 'uploadResume'
@@ -117,8 +137,10 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const isPremium = subscription?.subscriptionPlan?.includes('Pro') ?? false;
-  const isYearly = subscription?.subscriptionPlan === 'ProYearly' ?? false;
+  const isPremium = subscription?.canUsePremium === true;
+  const isYearly = subscription?.plan === 'PRO_YEARLY';
+
+
 
   const daysUntilRenewal = subscription?.subscriptionEndDate
     ? Math.ceil(
@@ -141,6 +163,20 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
   return (
     <SubscriptionContext.Provider value={value}>
       {children}
+      {/* Lightweight first-time subscription modal - simple inline UI to show current plan and locked features */}
+      {showFirstTimeModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div className="absolute inset-0 bg-black/50" />
+          <div className="relative bg-white rounded-2xl shadow-2xl p-6 max-w-md w-full">
+            <h3 className="text-xl font-bold">Welcome to JobOps</h3>
+            <p className="mt-2 text-sm text-gray-600">You're on the <span className="font-semibold">{subscription?.subscriptionPlan || 'Free'}</span> plan. Upgrade to unlock premium features like unlimited AI matches and priority alerts.</p>
+            <div className="mt-4 flex gap-2 justify-end">
+              <button className="px-4 py-2 rounded-lg bg-gray-100" onClick={() => setShowFirstTimeModal(false)}>Close</button>
+              <a className="px-4 py-2 rounded-lg bg-[#FF4500] text-white" href="/dashboard/settings">View plans</a>
+            </div>
+          </div>
+        </div>
+      )}
     </SubscriptionContext.Provider>
   );
 }
