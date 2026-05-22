@@ -214,14 +214,15 @@ export const subscribePlan = async (req: Request, res: Response): Promise<Respon
       data: { plan }
     })
 
-    await prisma.subscription.create({
+    await prisma.planSubscription.create({
       data: {
-        paymentName: plan,
-        paymentSatus: true,
-        plan,
-        userId: user.id,
+        planName: plan,
+        monthlyPrice: 0,
+        yearlyPrice: 0,
+        features: '[]',
       }
     })
+
 
     return res.status(200).json({
       success: true,

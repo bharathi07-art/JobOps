@@ -23,7 +23,8 @@ export const getOverview = async (req: Request, res: Response) => {
 
   try {
     const totalUsers = await prisma.user.count()
-    const totalSubscriptions = await prisma.subscription.count()
+    const totalSubscriptions = await prisma.planSubscription.count()
+
     const totalResumes = await ResumeModel.countDocuments()
     const totalAIResults = await AIResultModel.countDocuments()
 
@@ -86,12 +87,13 @@ export const getSubscriptions = async (req: Request, res: Response) => {
     return res.status(403).json({ message: 'Forbidden' })
   }
   try {
-    const subs = await prisma.subscription.findMany({ orderBy: { id: 'desc' } })
+    const subs = await prisma.planSubscription.findMany({ orderBy: { id: 'desc' } })
     res.json({ success: true, subscriptions: subs })
   } catch (error: any) {
     res.status(500).json({ message: error.message || 'Failed to fetch subscriptions' })
   }
 }
+
 
 export const getLogs = async (req: Request, res: Response) => {
   if (!(await isRequesterAdmin(req))) {
