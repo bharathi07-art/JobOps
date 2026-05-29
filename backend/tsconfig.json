@@ -11,7 +11,8 @@
     "rootDir": "./",
     "ignoreDeprecations": "6.0",
     "typeRoots": ["./types", "./node_modules/@types"],
-    "types": ["node"]
+    "types": ["node"],
+    "resolveJsonModule": true
   }
 }
 

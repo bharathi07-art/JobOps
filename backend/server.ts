@@ -15,8 +15,12 @@ import chatRoutes from "./routes/chatRoutes";
 import adminRoutes from "./routes/adminRoutes";
 import feedbackRoutes from "./routes/feedbackRoutes";
 import subscriptionRoutes from "./routes/subscriptionRoutes";
+import emailAutomationRoutes from "./routes/emailAutomationRoutes";
+import { startEmailAutomationScheduler } from "./scheduler/emailAutomationScheduler";
 
 const app = express();
+
+
 
 app.use(cors());
 app.use(express.json());
@@ -43,10 +47,15 @@ app.use("/api/ai", chatRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/feedback", feedbackRoutes);
 app.use("/api/subscription", subscriptionRoutes);
+app.use("/api/email-automation", emailAutomationRoutes);
+
 
 const port: number = Number(process.env.PORT) || 5000;
 
 connDB().then(() => {
+  // Start background email automation after Mongo is connected
+  startEmailAutomationScheduler();
+
   app.listen(port, () => {
     console.log(`Server running at http://localhost:${port}`);
   });

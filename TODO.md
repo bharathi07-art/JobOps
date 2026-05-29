@@ -1,10 +1,41 @@
-  # TODO (Subscription gating + free limits)
+# TODO
 
-- [ ] Implement AnalyticsPage lock (only premium can view). Non-premium sees lock UI + upgrade prompt textbox when trying to access.
-- [ ] Enforce free limit for AI job results display: show only first 10 matched jobs for non-premium; remaining jobs show locked UI and upgrade prompt when interacted with.
-- [ ] Enforce free limit for tracked applications: non-premium can track max 3 applications. When user tries to add 4th, show upgrade prompt textbox and prevent adding.
-- [ ] Verify ResumePage upload -> job match flow aligns with “4 AI searches/month” using existing SubscriptionContext limits (maxAISearches / aiSearchesUsed). If mismatch, adjust frontend gating points.
-- [ ] Run frontend typecheck/build (if available) and sanity-test gated flows:
-  - non-premium analytics blocked
-  - non-premium job list limited to 10
-  - non-premium cannot track more than 3 applications
+## Email automation for monthly/yearly + block free-plan toggling
+
+### Backend
+- [ ] Locate existing job search/matching service that produces the job results and can be reused by the automation runner.
+- [ ] Add Prisma fields (or new model) for email automation settings:
+  - [ ] enable/disable
+  - [ ] maxResults / resultsCount (UI setting)
+  - [ ] searchTime (HH:mm)
+  - [ ] (optional) frequency/monthly-yearly or infer from subscriptionPlan
+  - [ ] audit fields (updatedAt)
+- [ ] Add DB migration.
+- [ ] Implement protected API endpoints:
+  - [ ] GET current automation settings
+  - [ ] PUT/update automation settings
+  - [ ] Enforce subscription gating: only active ProMonthly/ProYearly users can enable
+- [ ] Implement automation runner (scheduler):
+  - [ ] Schedule at configured searchTime
+  - [ ] For each enabled user, run search/matching job generation
+  - [ ] Email body contains first 7 jobs (as required), regardless of resultsCount setting
+  - [ ] Send email to user.email
+- [ ] Ensure scheduler never runs for Free plan users.
+
+### Frontend
+- [ ] Add SettingsPage UI under Notifications/Automation tab:
+  - [ ] Toggle enable/disable automation
+  - [ ] Results count input
+  - [ ] Search time picker (HH:mm)
+  - [ ] Disable UI for Free users (backend will enforce too)
+- [ ] Add API calls to load/update automation settings.
+
+### QA / Testing
+- [ ] Run prisma migrate.
+- [ ] Run backend + frontend.
+- [ ] Verify:
+  - [ ] Free user cannot enable
+  - [ ] ProMonthly/ProYearly can enable
+  - [ ] Email contains first 7 jobs
+  - [ ] Runs at configured time
+

@@ -35,7 +35,13 @@ model User {
   paymentProvider         String?  // stripe, razorpay, paypal
   billingCycle            String?  // monthly, yearly
   autoRenew               Boolean  @default(true)
-  
+
+  // Email automation settings (monthly/yearly)
+  emailAutomationEnabled      Boolean @default(false)
+  emailAutomationMaxResults   Int     @default(7)
+  emailAutomationSearchTime   String  @default("09:00") // HH:mm
+  emailAutomationFrequency    String  @default("inferred") // monthly|yearly|inferred
+
   // Usage tracking
   aiSearchesUsed          Int      @default(0)
   maxAISearches           Int      @default(4) // Monthly limit for free plan
