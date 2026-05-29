@@ -6,6 +6,7 @@ import { DashboardLayout } from '../../components/layout/DashboardLayout'
 import { Card, StatCard } from '../../components/ui/index'
 import { weeklyActivity } from '../../data/mockData'
 import { useSubscription } from '../../contexts/SubscriptionContext'
+import SetPasswordModal from '../../components/SetPasswordModal'
 
 interface MatchedJob {
   title: string

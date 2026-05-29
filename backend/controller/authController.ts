@@ -161,7 +161,8 @@ export const googleAuthCallback = async (req: Request, res: Response): Promise<v
     );
 
     // Redirect to frontend with token and user info
-    const frontendRedirectUrl = `http://localhost:5173/dashboard?token=${encodeURIComponent(token)}&id=${encodeURIComponent(user.id)}&isAdmin=${encodeURIComponent(user.isAdmin)}&plan=${encodeURIComponent(user.plan)}&name=${encodeURIComponent(user.name)}&email=${encodeURIComponent(user.email)}&avatar=${encodeURIComponent(user.avatar || '')}`;
+    const hasPassword = user.password !== '';
+    const frontendRedirectUrl = `http://localhost:5173/dashboard?token=${encodeURIComponent(token)}&id=${encodeURIComponent(user.id)}&isAdmin=${encodeURIComponent(user.isAdmin)}&plan=${encodeURIComponent(user.plan)}&name=${encodeURIComponent(user.name)}&email=${encodeURIComponent(user.email)}&avatar=${encodeURIComponent(user.avatar || '')}&hasPassword=${encodeURIComponent(hasPassword)}`;
     res.redirect(frontendRedirectUrl);
   } catch (err: any) {
     res.status(500).json({ message: err.message });
@@ -171,7 +172,7 @@ export const googleAuthCallback = async (req: Request, res: Response): Promise<v
 export const githubAuthCallback = async (req: Request, res: Response): Promise<void> => {
   try {
     const user = (req as any).user;
-    
+
     if (!user) {
       res.status(401).json({ message: "Authentication failed" });
       return;
@@ -184,16 +185,50 @@ export const githubAuthCallback = async (req: Request, res: Response): Promise<v
     );
 
     // Redirect to frontend with token and user info
-    const frontendRedirectUrl = `http://localhost:5173/dashboard?token=${encodeURIComponent(token)}&id=${encodeURIComponent(user.id)}&isAdmin=${encodeURIComponent(user.isAdmin)}&plan=${encodeURIComponent(user.plan)}&name=${encodeURIComponent(user.name)}&email=${encodeURIComponent(user.email)}&avatar=${encodeURIComponent(user.avatar || '')}`;
+    const hasPassword = user.password !== '';
+    const frontendRedirectUrl = `http://localhost:5173/dashboard?token=${encodeURIComponent(token)}&id=${encodeURIComponent(user.id)}&isAdmin=${encodeURIComponent(user.isAdmin)}&plan=${encodeURIComponent(user.plan)}&name=${encodeURIComponent(user.name)}&email=${encodeURIComponent(user.email)}&avatar=${encodeURIComponent(user.avatar || '')}&hasPassword=${encodeURIComponent(hasPassword)}`;
     res.redirect(frontendRedirectUrl);
   } catch (err: any) {
     res.status(500).json({ message: err.message });
   }
 }
 
+export const setOAuthPassword = async (req: Request, res: Response): Promise<Response> => {
+  try {
+    const userId = (req as any).user?.id;
+    if (!userId) {
+      return res.status(401).json({ message: 'Unauthorized' });
+    }
+
+    const { password } = req.body;
+    if (!password || typeof password !== 'string' || password.length < 6) {
+      return res.status(400).json({ message: 'Password must be at least 6 characters' });
+    }
+
+    const user = await prisma.user.findUnique({ where: { id: Number(userId) } });
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    if (user.password !== '') {
+      return res.status(400).json({ message: 'Password is already set' });
+    }
+
+    const hashed = await bcrypt.hash(password, 10);
+    await prisma.user.update({
+      where: { id: Number(userId) },
+      data: { password: hashed },
+    });
+
+    return res.status(200).json({ message: 'Password set successfully' });
+  } catch (err: any) {
+    return res.status(500).json({ message: err.message });
+  }
+}
+
 export const subscribePlan = async (req: Request, res: Response): Promise<Response> => {
   try {
-    const userId = (req as any).user?.id
+    const userId = (req as any).user?.id;
     const { plan } = req.body
 
     if (!userId) {
@@ -204,7 +239,7 @@ export const subscribePlan = async (req: Request, res: Response): Promise<Respon
       return res.status(400).json({ message: 'Plan is required' })
     }
 
-    const allowedPlans = ['Free', 'Monthly', 'Yearly', 'Pro', 'Premium']
+    const allowedPlans = ['Free', 'Monthly', 'Yearly',]
     if (!allowedPlans.includes(plan)) {
       return res.status(400).json({ message: 'Invalid plan selected' })
     }
@@ -241,8 +276,10 @@ export const subscribePlan = async (req: Request, res: Response): Promise<Respon
   }
 }
 
-
-//OTP router
+/*====================
+    //OTP router
+=====================
+ */
 export const otpSend=async(req:Request, res:Response)=>{
   try{
     const {email} = req.body;
@@ -264,7 +301,7 @@ export const otpSend=async(req:Request, res:Response)=>{
         userId: user ? user.id : undefined,
       },
     });
-
+  
     //generate the body of the EMAL
     
     const canSendEmail = Boolean(process.env.EMAIL_USER && process.env.EMAIL_PASS);
@@ -299,7 +336,9 @@ export const otpSend=async(req:Request, res:Response)=>{
   }
 };
 
-//verify the OTP
+/*====================
+  //verify the OTP
+==================== */
 
 export const verifyOTP=async (req:Request, res:Response)=>{
   try{
@@ -372,3 +411,29 @@ export const verifyOTP=async (req:Request, res:Response)=>{
     });
     }
 };
+
+/*================
+    autoEmail
+  ================ 
+
+export const autoemail  = async(req:Request, res:Response)=>{
+  try{
+    const {email} = req.body;
+
+    if(!email){
+      res.status(400).json({message:"Email is needed"});
+      alert("Email is requeired");
+    }
+
+    //check the user plan activation
+    const userEmail = await prisma.user.findUnique({
+      where:{email}
+    })
+
+    
+
+  }
+  catch(error)
+  {}
+}
+  */

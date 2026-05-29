@@ -1,6 +1,6 @@
 import express from 'express';
 import { authMiddleware} from '../middleware/authMiddleware'
-import { getProfile, subscribePlan, googleAuthCallback, githubAuthCallback, otpSend, verifyOTP } from '../controller/authController'
+import { getProfile, subscribePlan, googleAuthCallback, githubAuthCallback, otpSend, verifyOTP, setOAuthPassword } from '../controller/authController'
 const router = express.Router();
 
 //auth routes
@@ -8,6 +8,7 @@ import passport from 'passport';
 
 router.get("/profile", authMiddleware, getProfile)
 router.post("/subscribe", authMiddleware, subscribePlan)
+router.post("/set-password", authMiddleware, setOAuthPassword)
 
 
 //OAuth routes
