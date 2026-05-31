@@ -137,7 +137,7 @@ export default function PricingPage() {
                 }`}
               >
                 {/* Best Value Badge */}
-                {plan.id === 'ProYearly' && (
+                {plan.id === 'Yearly' && (
                   <div className="absolute -top-4 left-1/2 -translate-x-1/2">
                     <motion.div
                       initial={{ scale: 0 }}

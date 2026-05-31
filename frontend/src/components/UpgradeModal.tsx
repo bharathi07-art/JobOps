@@ -221,12 +221,12 @@ export function UpgradeModal({
                       onClick={() => handleUpgrade(plan.id)}
                       disabled={loading}
                       className={`relative p-6 rounded-xl border-2 transition-all text-left group ${
-                        plan.id === 'ProYearly'
+                        plan.id === 'Yearly'
                           ? 'border-[#FF4500] bg-[#FFCBA4]/10 shadow-lg'
                           : 'border-gray-200 bg-white hover:border-gray-300'
                       }`}
                     >
-                      {plan.id === 'ProYearly' && (
+                      {plan.id === 'Yearly' && (
                         <span className="absolute -top-2 left-4 text-xs font-bold bg-[#FF4500] text-white px-3 py-1 rounded-full">
                           ⭐ Best Value
                         </span>
@@ -259,7 +259,7 @@ export function UpgradeModal({
                   Maybe Later
                 </Button>
                 <Button
-                  onClick={() => handleUpgrade('ProMonthly')}
+                  onClick={() => handleUpgrade('Monthly')}
                   variant="primary"
                   size="lg"
                   className="flex-1"

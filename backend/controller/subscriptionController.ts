@@ -31,8 +31,12 @@ export const getCurrentSubscription = async (req: AuthRequest, res: Response): P
     const subscription = await getUserSubscription(req.user.id);
 
     // Premium data guard: if not active, canUsePremium must be false and locked features should be enforced.
-    // (Front-end uses these fields for locked feature display.)
-    if (subscription.subscriptionStatus !== 'active') {
+    // Premium data guard: if not active (and not a premium plan manually set to inactive), canUsePremium must be false.
+    const isActuallyPremium = subscription.subscriptionStatus === 'active' || (subscription.subscriptionStatus === 'inactive' && subscription.plan !== 'FREE');
+    
+    console.log(`[getCurrentSubscription] User: ${req.user.id}, Status: ${subscription.subscriptionStatus}, Plan: ${subscription.plan}, isActuallyPremium: ${isActuallyPremium}`);
+
+    if (!isActuallyPremium) {
       res.status(200).json({
         ...subscription,
         canUsePremium: false,
@@ -88,7 +92,7 @@ const getFeaturesList = (planName: keyof typeof SUBSCRIPTION_PLANS): string[] =>
       '1 resume upload',
       'Basic analytics',
     ],
-    ProMonthly: [
+    Monthly: [
       ...baseFeatures,
       'Unlimited AI searches (1 per day)',
       'Daily email notifications',
@@ -102,7 +106,7 @@ const getFeaturesList = (planName: keyof typeof SUBSCRIPTION_PLANS): string[] =>
       'Priority support',
       'Application insights',
     ],
-    ProYearly: [
+    Yearly: [
       ...baseFeatures,
       'Unlimited AI searches (1 per day)',
       'Daily email notifications',
@@ -151,7 +155,7 @@ export const updateUserSubscription = async (req: AuthRequest, res: Response): P
     const updatedSubscription = await updateSubscription(
       req.user.id,
       planName as keyof typeof SUBSCRIPTION_PLANS,
-      billingCycle as 'monthly' | 'yearly'
+      billingCycle as 'Monthly' | 'Yearly'
     );
 
     res.status(200).json({
@@ -275,7 +279,7 @@ export const getAdminSubscriptionAnalytics = async (req: AuthRequest, res: Respo
     const yearlyVsMonthly = await prisma.user.groupBy({
       by: ['billingCycle'],
       where: {
-        subscriptionPlan: { in: ['ProMonthly', 'ProYearly'] },
+        subscriptionPlan: { in: ['Monthly', 'Yearly'] },
       },
       _count: true,
     });
@@ -331,7 +335,7 @@ export const recordSubscriptionPayment = async (req: AuthRequest, res: Response)
     const updatedSubscription = await updateSubscription(
       userId,
       planName as keyof typeof SUBSCRIPTION_PLANS,
-      billingCycle as 'monthly' | 'yearly'
+      billingCycle as 'Monthly' | 'Yearly'
     );
 
     res.status(200).json({

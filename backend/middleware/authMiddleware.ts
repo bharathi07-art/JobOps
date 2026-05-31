@@ -36,6 +36,7 @@ export const authMiddleware=(
         next()
 
    } catch (error) {
+    console.error("JWT Verification Error:", error);
     res.status(401).json({ message: "Unauthorized" });
   }
 }

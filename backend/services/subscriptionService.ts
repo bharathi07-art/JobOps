@@ -7,7 +7,7 @@ export const SUBSCRIPTION_PLANS = {
   Free: {
     name: 'Free',
     monthlyPrice: 0,
-    yearlyPrice: 0,
+    YearlyPrice: 0,
     aiSearches: 4,
     savedJobs: 10,
     resumeUploads: 1,
@@ -18,10 +18,10 @@ export const SUBSCRIPTION_PLANS = {
     skillGapAnalysis: false,
     careerRoadmap: false,
   },
-  ProMonthly: {
-    name: 'ProMonthly',
-    monthlyPrice: 9.99,
-    yearlyPrice: 0,
+  Monthly: {
+    name: 'Monthly',
+    monthlyPrice: 25,
+    YearlyPrice: 0,
     aiSearches: 30, // Daily searches
     savedJobs: 0, // unlimited
     resumeUploads: 0, // unlimited
@@ -32,10 +32,10 @@ export const SUBSCRIPTION_PLANS = {
     skillGapAnalysis: true,
     careerRoadmap: false,
   },
-  ProYearly: {
-    name: 'ProYearly',
+  Yearly: {
+    name: 'Yearly',
     monthlyPrice: 0,
-    yearlyPrice: 99.99,
+    YearlyPrice: 210,
     aiSearches: 30, // Daily searches
     savedJobs: 0, // unlimited
     resumeUploads: 0, // unlimited
@@ -49,12 +49,12 @@ export const SUBSCRIPTION_PLANS = {
 } as const;
 
 export type PlanKey = keyof typeof SUBSCRIPTION_PLANS;
-export type PlanId = 'FREE' | 'PRO_MONTHLY' | 'PRO_YEARLY';
+export type PlanId = 'FREE' | 'MONTHLY' | 'YEARLY';
 
 const PLAN_ID_BY_DB_PLAN: Record<PlanKey, PlanId> = {
   Free: 'FREE',
-  ProMonthly: 'PRO_MONTHLY',
-  ProYearly: 'PRO_YEARLY',
+  Monthly: 'MONTHLY',
+  Yearly: 'YEARLY',
 };
 
 const LOCKED_FEATURES = {
@@ -70,7 +70,7 @@ const LOCKED_FEATURES = {
 type LockedFeature = (typeof LOCKED_FEATURES)[keyof typeof LOCKED_FEATURES];
 
 export const getLockedFeaturesForPlan = (plan: PlanKey): LockedFeature[] => {
-  // Required UX: Free shows all premium module lock items. ProMonthly/ProYearly unlock a subset.
+  // Required UX: Free shows all premium module lock items. Monthly/Yearly unlock a subset.
   if (plan === 'Free') {
     return [
       LOCKED_FEATURES.unlimitedAISearches,
@@ -83,23 +83,38 @@ export const getLockedFeaturesForPlan = (plan: PlanKey): LockedFeature[] => {
     ];
   }
 
-  if (plan === 'ProMonthly') {
+  if (plan === 'Monthly') {
     return [LOCKED_FEATURES.careerRoadmap];
   }
 
-  // ProYearly unlocks everything listed.
+  // Yearly unlocks everything listed.
   return [];
 };
 
+const normalizeDbPlanToPlanKey = (plan: any): PlanKey => {
+  // DB schema is Monthly/Yearly, but some records/paths may store "Monthly/Yearly".
+  // Also tolerate legacy "monthly/Yearly" casing.
+  if (plan === 'Monthly' || plan === 'monthly') return 'Monthly';
+  if (plan === 'Yearly' || plan === 'Yearly') return 'Yearly';
+
+  // If DB already stores canonical plan keys.
+  if (plan === 'Monthly' || plan === 'Yearly' || plan === 'Free') return plan;
+
+  return 'Free';
+};
+
+
 const getPlanUsageCounters = (user: any) => {
   const subscriptionStatus: string = user.subscriptionStatus;
-  const planKey = (user.subscriptionPlan || 'Free') as PlanKey;
+  const planKey = normalizeDbPlanToPlanKey(user.subscriptionPlan) as PlanKey;
 
   const searchesUsed = user.aiSearchesUsed ?? 0;
   const searchesLimit = user.maxAISearches ?? 0;
   const searchesRemaining = searchesLimit === 0 ? 999999 : Math.max(0, searchesLimit - searchesUsed);
 
-  const canUsePremium = subscriptionStatus === 'active' && planKey !== 'Free';
+  // Tolerate manual DB updates where plan is set to Monthly/Yearly but status was left as inactive
+  const isActiveOrAssumed = subscriptionStatus === 'active' || (subscriptionStatus === 'inactive' && planKey !== 'Free');
+  const canUsePremium = isActiveOrAssumed && planKey !== 'Free';
 
   return {
     plan: PLAN_ID_BY_DB_PLAN[planKey] ?? 'FREE',
@@ -169,7 +184,7 @@ export const getUserSubscription = async (userId: number) => {
     return {
       ...counters,
       // Keep legacy fields to avoid breaking existing UI (Pricing/Management/Context)
-      subscriptionPlan: user.subscriptionPlan,
+      subscriptionPlan: normalizeDbPlanToPlanKey(user.subscriptionPlan),
       subscriptionStatus: user.subscriptionStatus,
       subscriptionStartDate: user.subscriptionStartDate,
       subscriptionEndDate: user.subscriptionEndDate,
@@ -198,7 +213,7 @@ export const getUserSubscription = async (userId: number) => {
 export const updateSubscription = async (
   userId: number,
   newPlan: keyof typeof SUBSCRIPTION_PLANS,
-  billingCycle: 'monthly' | 'yearly'
+  billingCycle: 'Monthly' | 'Yearly'
 ) => {
   try {
     const planConfig = SUBSCRIPTION_PLANS[newPlan];
@@ -209,7 +224,7 @@ export const updateSubscription = async (
     const currentDate = new Date();
     let endDate = new Date(currentDate);
 
-    if (billingCycle === 'yearly') {
+    if (billingCycle === 'Yearly') {
       endDate.setFullYear(endDate.getFullYear() + 1);
     } else {
       endDate.setMonth(endDate.getMonth() + 1);
@@ -229,7 +244,7 @@ export const updateSubscription = async (
         previousPlan: user?.subscriptionPlan || 'Free',
         newPlan,
         amount:
-          billingCycle === 'yearly' ? planConfig.yearlyPrice : planConfig.monthlyPrice,
+          billingCycle === 'Yearly' ? planConfig.YearlyPrice : planConfig.monthlyPrice,
         currency: 'USD',
         status: 'completed',
         startDate: currentDate,

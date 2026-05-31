@@ -59,7 +59,7 @@ export function SubscriptionStatusBar({
         <div className="flex items-center gap-2">
           <Crown className="w-4 h-4" />
           <span className="font-semibold">
-            {plan === 'ProYearly' ? 'Pro Yearly' : 'Pro Monthly'} Plan
+            {plan === 'Yearly' ? 'Pro Yearly' : 'Pro Monthly'} Plan
           </span>
         </div>
         <span className="text-white/90">

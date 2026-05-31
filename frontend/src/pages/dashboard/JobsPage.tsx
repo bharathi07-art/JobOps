@@ -14,6 +14,8 @@ interface MatchedJob {
   match_percentage: number
   category: 'high' | 'medium' | 'low'
   career_url?: string
+  job_url?: string
+  search_url?: string
 }
 
 interface AIResult {
@@ -160,9 +162,15 @@ export default function JobsPage() {
 }
 
 // ── Apply flow modals ──────────────────────────────────────────────────────────
-function ApplyConfirmModal({ job, onConfirm, onCancel }: {
-  job: MatchedJob; onConfirm: () => void; onCancel: () => void
+function ApplyConfirmModal({ job, onConfirm, onCancel, linkType }: {
+  job: MatchedJob; onConfirm: () => void; onCancel: () => void; linkType: 'direct' | 'search' | 'careers'
 }) {
+  const badge = linkType === 'direct'
+    ? { label: '🎯 Direct Job Link', color: 'bg-green-100 text-green-700 border-green-200' }
+    : linkType === 'search'
+    ? { label: '🔍 Pre-filled Search', color: 'bg-blue-100 text-blue-700 border-blue-200' }
+    : { label: '🏢 Careers Page', color: 'bg-gray-100 text-gray-600 border-gray-200' }
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
       <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}
@@ -176,14 +184,22 @@ function ApplyConfirmModal({ job, onConfirm, onCancel }: {
             <X className="w-4 h-4" />
           </button>
         </div>
-        <h3 className="font-bold text-gray-900 text-lg mb-1">Leaving JobOps</h3>
+        <h3 className="font-bold text-gray-900 text-lg mb-1">Apply for this Job</h3>
         <p className="text-sm text-gray-500 mb-2">
-          You are about to visit the company application portal for
+          You'll be taken to the company's official portal for:
         </p>
-        <div className="bg-orange-50 rounded-xl px-4 py-3 mb-5">
+        <div className="bg-orange-50 rounded-xl px-4 py-3 mb-3">
           <p className="font-semibold text-gray-900 text-sm">{job.title}</p>
           <p className="text-xs text-gray-500">{job.company}</p>
         </div>
+        <span className={`inline-flex items-center text-xs font-medium px-2.5 py-1 rounded-full border mb-5 ${badge.color}`}>
+          {badge.label}
+        </span>
+        {linkType !== 'direct' && (
+          <p className="text-xs text-amber-600 bg-amber-50 border border-amber-100 rounded-lg px-3 py-2 mb-4">
+            ⚠️ You may need to search for <span className="font-semibold">"{job.title}"</span> on the company portal.
+          </p>
+        )}
         <div className="flex gap-3">
           <button onClick={onCancel}
             className="flex-1 px-4 py-2.5 border border-gray-200 text-gray-600 text-sm font-medium rounded-xl hover:bg-gray-50 transition-colors">
@@ -191,7 +207,7 @@ function ApplyConfirmModal({ job, onConfirm, onCancel }: {
           </button>
           <button onClick={onConfirm}
             className="flex-1 px-4 py-2.5 bg-[#FF4500] text-white text-sm font-medium rounded-xl hover:bg-[#e03e00] transition-colors flex items-center justify-center gap-2">
-            Continue <ExternalLink className="w-3.5 h-3.5" />
+            Go Apply <ExternalLink className="w-3.5 h-3.5" />
           </button>
         </div>
       </motion.div>
@@ -250,10 +266,14 @@ function JobCard({ job, index, saved, onSave }: {
     setSaving(false)
   }
 
+  // Priority: direct job listing > pre-filled search > general careers page
+  const applyUrl = job.job_url || job.search_url || job.career_url
+  const applyLinkType = job.job_url ? 'direct' : job.search_url ? 'search' : 'careers'
+
   const handleApplyConfirm = () => {
     setShowConfirm(false)
-    if (job.career_url) {
-      windowRef.current = window.open(job.career_url, '_blank', 'noopener,noreferrer')
+    if (applyUrl) {
+      windowRef.current = window.open(applyUrl, '_blank', 'noopener,noreferrer')
     }
     setTimeout(() => setShowFollowUp(true), 1500)
   }
@@ -278,7 +298,7 @@ function JobCard({ job, index, saved, onSave }: {
           salary: '',
           location: job.location,
           matchPercentage: job.match_percentage,
-          careerUrl: job.career_url,
+          careerUrl: job.job_url || job.search_url || job.career_url,
         }
         localStorage.setItem(LS_KEY, JSON.stringify([...existing, newApp]))
         window.dispatchEvent(new Event('applicationsUpdated'))
@@ -303,7 +323,8 @@ function JobCard({ job, index, saved, onSave }: {
         {showConfirm && (
           <ApplyConfirmModal job={job}
             onConfirm={handleApplyConfirm}
-            onCancel={() => setShowConfirm(false)} />
+            onCancel={() => setShowConfirm(false)}
+            linkType={applyLinkType} />
         )}
         {showFollowUp && (
           <FollowUpModal job={job}
@@ -381,7 +402,7 @@ function JobCard({ job, index, saved, onSave }: {
             <AlertCircle className="w-3 h-3" />
             <span>AI Matched</span>
           </div>
-          {job.career_url ? (
+          {applyUrl ? (
             <button onClick={() => setShowConfirm(true)}
               className="flex items-center gap-1.5 px-3 py-1.5 bg-[#FF4500] hover:bg-[#e03e00] text-white text-xs font-medium rounded-lg transition-colors">
               Apply <ExternalLink className="w-3 h-3" />

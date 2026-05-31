@@ -20,6 +20,9 @@ interface MatchedJob {
   match_percentage: number
   category: 'high' | 'medium' | 'low'
   location?: string
+  career_url?: string
+  job_url?: string
+  search_url?: string
 }
 
 interface AIResult {

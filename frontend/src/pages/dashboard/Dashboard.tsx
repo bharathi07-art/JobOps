@@ -85,10 +85,35 @@ export default function Dashboard() {
   }, [navigate])
 
   useEffect(() => {
+    // 1. Load from local storage immediately for fast UI
     const stored = localStorage.getItem('aiResumeResult')
     if (stored) {
       try { setAiResult(JSON.parse(stored)) } catch { /* ignore */ }
     }
+
+    // 2. Fetch the latest from backend in case an automated background search happened
+    const fetchLatest = async () => {
+      try {
+        const rawUser = localStorage.getItem('userInfo');
+        if (!rawUser) return;
+        const token = JSON.parse(rawUser).token;
+        if (!token) return;
+
+        const res = await fetch('/api/jobresult/latest', {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        const data = await res.json();
+        
+        if (res.ok && data.success && data.result) {
+          setAiResult(data.result);
+          localStorage.setItem('aiResumeResult', JSON.stringify(data.result));
+        }
+      } catch (err) {
+        console.error('Failed to fetch latest AI result:', err);
+      }
+    };
+    
+    fetchLatest();
   }, [])
 
   const subscriptionContext = useSubscription()

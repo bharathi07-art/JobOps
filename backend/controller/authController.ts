@@ -4,6 +4,7 @@ import bcrypt from 'bcrypt';
 import generateOTP from '../utils/generateOTP';
 import transporter from '../utils/sendEmail';
 import jwt from 'jsonwebtoken'
+import { getUserSubscription, updateSubscription } from '../services/subscriptionService';
 import dotenv from 'dotenv';
 import { json } from "node:stream/consumers";
 dotenv.config();
@@ -51,16 +52,18 @@ export const register = async (req:Request, res:Response):Promise<void>=>{
             {expiresIn: "30d"},
         )
 
+         const sub = await getUserSubscription(user.id);
+
          res.status(201).json({
             message: "Registered sucessfully",
               token,
               isAdmin: user.isAdmin,
-              plan: user.plan,
+              plan: sub.subscriptionPlan,
               user: {
                 id: user.id,
                 name: user.name,
                 email: user.email,
-                plan: user.plan,
+                plan: sub.subscriptionPlan,
               }
         });
     }
@@ -103,16 +106,18 @@ export const login = async (req: Request, res: Response): Promise<Response> => {
       { expiresIn: "30d" }
     );
 
+    const sub = await getUserSubscription(user.id);
+
     return res.status(200).json({
       message: "Login successful",
       token,
       isAdmin: user.isAdmin,
-      plan: user.plan,
+      plan: sub.subscriptionPlan,
       user: {
         id: user.id,
         name: user.name,
         email: user.email,
-        plan: user.plan,
+        plan: sub.subscriptionPlan,
       }
     });
 
@@ -139,6 +144,9 @@ export const getProfile = async (req: Request, res: Response): Promise<Response>
       return res.status(404).json({ message: 'User not found' })
     }
 
+    const sub = await getUserSubscription(user.id);
+    user.plan = sub.subscriptionPlan; // override with canonical plan
+
     return res.status(200).json({ success: true, user })
   } catch (err: any) {
     return res.status(500).json({ message: err.message })
@@ -162,7 +170,8 @@ export const googleAuthCallback = async (req: Request, res: Response): Promise<v
 
     // Redirect to frontend with token and user info
     const hasPassword = user.password !== '';
-    const frontendRedirectUrl = `http://localhost:5173/dashboard?token=${encodeURIComponent(token)}&id=${encodeURIComponent(user.id)}&isAdmin=${encodeURIComponent(user.isAdmin)}&plan=${encodeURIComponent(user.plan)}&name=${encodeURIComponent(user.name)}&email=${encodeURIComponent(user.email)}&avatar=${encodeURIComponent(user.avatar || '')}&hasPassword=${encodeURIComponent(hasPassword)}`;
+    const sub = await getUserSubscription(user.id);
+    const frontendRedirectUrl = `http://localhost:5173/dashboard?token=${encodeURIComponent(token)}&id=${encodeURIComponent(user.id)}&isAdmin=${encodeURIComponent(user.isAdmin)}&plan=${encodeURIComponent(sub.subscriptionPlan)}&name=${encodeURIComponent(user.name)}&email=${encodeURIComponent(user.email)}&avatar=${encodeURIComponent(user.avatar || '')}&hasPassword=${encodeURIComponent(hasPassword)}`;
     res.redirect(frontendRedirectUrl);
   } catch (err: any) {
     res.status(500).json({ message: err.message });
@@ -186,7 +195,8 @@ export const githubAuthCallback = async (req: Request, res: Response): Promise<v
 
     // Redirect to frontend with token and user info
     const hasPassword = user.password !== '';
-    const frontendRedirectUrl = `http://localhost:5173/dashboard?token=${encodeURIComponent(token)}&id=${encodeURIComponent(user.id)}&isAdmin=${encodeURIComponent(user.isAdmin)}&plan=${encodeURIComponent(user.plan)}&name=${encodeURIComponent(user.name)}&email=${encodeURIComponent(user.email)}&avatar=${encodeURIComponent(user.avatar || '')}&hasPassword=${encodeURIComponent(hasPassword)}`;
+    const sub = await getUserSubscription(user.id);
+    const frontendRedirectUrl = `http://localhost:5173/dashboard?token=${encodeURIComponent(token)}&id=${encodeURIComponent(user.id)}&isAdmin=${encodeURIComponent(user.isAdmin)}&plan=${encodeURIComponent(sub.subscriptionPlan)}&name=${encodeURIComponent(user.name)}&email=${encodeURIComponent(user.email)}&avatar=${encodeURIComponent(user.avatar || '')}&hasPassword=${encodeURIComponent(hasPassword)}`;
     res.redirect(frontendRedirectUrl);
   } catch (err: any) {
     res.status(500).json({ message: err.message });
@@ -244,31 +254,44 @@ export const subscribePlan = async (req: Request, res: Response): Promise<Respon
       return res.status(400).json({ message: 'Invalid plan selected' })
     }
 
-    const user = await prisma.user.update({
-      where: { id: Number(userId) },
-      data: { plan }
-    })
+    // Properly update the canonical subscription fields, status, and usage limits
+    const planKeyMap: Record<string, 'Monthly' | 'Yearly' | 'Free'> = {
+      Monthly: 'Monthly',
+      Yearly: 'Yearly',
+      Free: 'Free',
+    };
+    
+    const canonicalPlan = planKeyMap[plan];
+    const billingCycle = plan === 'Yearly' ? 'Yearly' : 'Monthly';
 
-    await prisma.planSubscription.create({
-      data: {
-        planName: plan,
-        monthlyPrice: 0,
-        yearlyPrice: 0,
-        features: '[]',
-      }
-    })
+    if (canonicalPlan !== 'Free') {
+      await updateSubscription(Number(userId), canonicalPlan as any, billingCycle);
+    } else {
+      // If downgraded to free
+      await prisma.user.update({
+        where: { id: Number(userId) },
+        data: { 
+          plan,
+          subscriptionPlan: 'Free',
+          subscriptionStatus: 'inactive',
+          subscriptionEndDate: new Date()
+        }
+      })
+    }
 
+    const sub = await getUserSubscription(Number(userId));
+    const updatedUser = await prisma.user.findUnique({ where: { id: Number(userId) } });
 
     return res.status(200).json({
       success: true,
       message: `Plan updated to ${plan}`,
-      plan: user.plan,
+      plan: sub.subscriptionPlan,
       user: {
-        id: user.id,
-        name: user.name,
-        email: user.email,
-        plan: user.plan,
-        isAdmin: user.isAdmin,
+        id: updatedUser?.id,
+        name: updatedUser?.name,
+        email: updatedUser?.email,
+        plan: sub.subscriptionPlan,
+        isAdmin: updatedUser?.isAdmin,
       }
     })
   } catch (err: any) {

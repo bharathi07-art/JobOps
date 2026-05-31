@@ -74,29 +74,18 @@ Return ONLY this exact JSON structure with these exact keys:
       "location": "City, India",
       "match_percentage": <number 0-100>,
       "category": "high",
-      "career_url": "https://careers.companyname.com"
-    },
-    {
-      "title": "Job Title",
-      "company": "Company Name",
-      "location": "City, India",
-      "match_percentage": <number 0-100>,
-      "category": "medium",
-      "career_url": "https://careers.companyname.com"
-    },
-    {
-      "title": "Job Title",
-      "company": "Company Name",
-      "location": "City, India",
-      "match_percentage": <number 0-100>,
-      "category": "low",
-      "career_url": "https://careers.companyname.com"
+      "career_url": "https://careers.companyname.com",
+      "job_url": "https://careers.companyname.com/jobs/junior-mern-stack-developer-12345",
+      "search_url": "https://careers.companyname.com/jobs?q=MERN+Stack+Developer&location=India"
     }
   ]
 }
 Rules:
 - category must be "high" if match_percentage >= 70, "medium" if >= 40, else "low"
-- career_url must be the real official careers/jobs page URL of the company. Never use job board URLs like linkedin.com or naukri.com.`
+- career_url must be the real official careers/jobs page URL of the company (e.g. https://careers.google.com). Never use job board URLs like linkedin.com or naukri.com.
+- job_url must be the DIRECT URL to the specific job vacancy listing page on the company's own careers portal. This is the most important field — users will click this to apply to THAT exact job. If you cannot find a real direct link, construct the most specific URL possible using the company's known careers URL pattern.
+- search_url must be a URL that pre-fills a search for this job title on the company's careers portal (use query parameters like ?q=, ?keyword=, ?search=, or ?title= as appropriate for that company's portal). This is used as a fallback if job_url is unavailable.
+- All three URL fields must point to the company's own official domain, never third-party job boards.`
           }]
         }]
       },
@@ -228,6 +217,25 @@ export const getHistory = async (req: Request, res: Response) => {
     res.status(200).json({ success: true, history });
   } catch (error: any) {
     res.status(500).json({ message: "Failed to fetch history" });
+  }
+};
+
+// ── Get Latest Full AI Result ────────────────────────────────────────────────
+export const getLatestResult = async (req: Request, res: Response) => {
+  const userId = (req as any).user?.id;
+  if (!userId) {
+    res.status(401).json({ message: "Unauthorized: User ID not found" });
+    return;
+  }
+  try {
+    const latest = await AIResultModel.findOne({ userId }).sort({ createdAt: -1 });
+    if (!latest) {
+      res.status(404).json({ message: "No AI results found" });
+      return;
+    }
+    res.status(200).json({ success: true, result: latest });
+  } catch (error: any) {
+    res.status(500).json({ message: "Failed to fetch latest result" });
   }
 };
 

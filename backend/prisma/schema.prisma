@@ -27,7 +27,7 @@ model User {
   
   // Subscription fields
   subscriptionStatus      String   @default("inactive") // inactive, active, cancelled, expired
-  subscriptionPlan        String   @default("Free") // Free, ProMonthly, ProYearly
+  subscriptionPlan        String   @default("Free") // Free, Monthly, Yearly
   subscriptionStartDate   DateTime?
   subscriptionEndDate     DateTime?
   stripeCustomerId        String?  @unique
@@ -41,6 +41,7 @@ model User {
   emailAutomationMaxResults   Int     @default(7)
   emailAutomationSearchTime   String  @default("09:00") // HH:mm
   emailAutomationFrequency    String  @default("inferred") // monthly|yearly|inferred
+  emailAutomationResumeText   String? @db.Text
 
   // Usage tracking
   aiSearchesUsed          Int      @default(0)
@@ -106,7 +107,7 @@ model Workflow {
 
 model PlanSubscription {
   id                    Int      @id @default(autoincrement())
-  planName              String   // Free, ProMonthly, ProYearly
+  planName              String   // Free, Monthly, Yearly
   monthlyPrice          Float    @default(0)
   yearlyPrice           Float    @default(0)
   features              String   // JSON string of features array

@@ -10,6 +10,7 @@ import {
   getHistory,
   getAnalytics,
   getLogs,
+  getLatestResult,
 } from '../controller/aiController';
 
 const router = express.Router();
@@ -27,6 +28,7 @@ router.post('/save-job', authMiddleware, checkUsageLimit('saveJob'), saveJob);
 router.get('/saved-jobs', authMiddleware, getSavedJobs);
 router.delete('/saved-jobs/:id', authMiddleware, deleteSavedJob);
 router.get('/history', authMiddleware, getHistory);
+router.get('/latest', authMiddleware, getLatestResult);
 router.get('/analytics', authMiddleware, getAnalytics);
 router.get('/logs', authMiddleware, getLogs);
 

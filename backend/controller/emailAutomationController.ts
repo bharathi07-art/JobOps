@@ -1,5 +1,7 @@
 import { Request, Response } from 'express';
 import prisma from '../config/prisma';
+import { PDFParse } from 'pdf-parse';
+import mammoth from 'mammoth';
 
 const getUserId = (req: Request): number | null => {
   const userId = (req as any).user?.id;
@@ -8,8 +10,8 @@ const getUserId = (req: Request): number | null => {
 };
 
 const isProActive = (subscriptionStatus: string, subscriptionPlan: string) => {
-  if (subscriptionStatus !== 'active') return false;
-  return subscriptionPlan === 'ProMonthly' || subscriptionPlan === 'ProYearly';
+  const isPremiumPlan = subscriptionPlan === 'Monthly' || subscriptionPlan === 'Yearly';
+  return (subscriptionStatus === 'active' || subscriptionStatus === 'inactive') && isPremiumPlan;
 };
 
 export const getEmailAutomationSettings = async (req: Request, res: Response) => {
@@ -31,6 +33,8 @@ export const getEmailAutomationSettings = async (req: Request, res: Response) =>
         emailAutomationMaxResults: true,
         emailAutomationSearchTime: true,
         emailAutomationFrequency: true,
+        // @ts-ignore
+        emailAutomationResumeText: true,
       },
     });
 
@@ -45,6 +49,7 @@ export const getEmailAutomationSettings = async (req: Request, res: Response) =>
       emailAutomationMaxResults: user.emailAutomationMaxResults,
       emailAutomationSearchTime: user.emailAutomationSearchTime,
       emailAutomationFrequency: user.emailAutomationFrequency,
+      hasAutomationResume: !!(user as any).emailAutomationResumeText,
       canEnableEmailAutomation: isProActive(user.subscriptionStatus, user.subscriptionPlan),
     });
   } catch (error) {
@@ -86,7 +91,7 @@ export const updateEmailAutomationSettings = async (req: Request, res: Response)
 
     if (emailAutomationEnabled === true && !canEnable) {
       res.status(403).json({
-        message: 'Email automation requires an active ProMonthly or ProYearly subscription',
+        message: 'Email automation requires an active Monthly or Yearly subscription',
         currentPlan: user.subscriptionPlan,
       });
       return;
@@ -139,3 +144,45 @@ export const updateEmailAutomationSettings = async (req: Request, res: Response)
   }
 };
 
+export const uploadAutomationResume = async (req: Request, res: Response) => {
+  try {
+    const userId = getUserId(req);
+    if (!userId) {
+      res.status(401).json({ message: 'Unauthorized' });
+      return;
+    }
+
+    const file = req.file;
+    if (!file) {
+      res.status(400).json({ message: 'Resume file is required' });
+      return;
+    }
+
+    let resumeText = '';
+
+    if (file.mimetype === 'application/pdf') {
+      const parser = new PDFParse({ data: file.buffer });
+      const parsed = await parser.getText();
+      resumeText = parsed.text;
+    } else if (file.mimetype === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
+      const parsed = await mammoth.extractRawText({ buffer: file.buffer });
+      resumeText = parsed.value;
+    } else {
+      res.status(400).json({ message: 'Unsupported file type. Only PDF and DOCX are allowed.' });
+      return;
+    }
+
+    await prisma.user.update({
+      where: { id: userId },
+      data: {
+        // @ts-ignore
+        emailAutomationResumeText: resumeText,
+      },
+    });
+
+    res.status(200).json({ success: true, message: 'Automation resume uploaded successfully' });
+  } catch (error) {
+    console.error('uploadAutomationResume error:', error);
+    res.status(500).json({ message: 'Failed to upload automation resume' });
+  }
+};

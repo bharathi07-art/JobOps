@@ -14,7 +14,12 @@ function getStoredUser() {
     if (!raw) return { name: '', email: '', role: '', avatar: '', plan: 'Free' }
     const parsed = JSON.parse(raw)
     const u = parsed?.user ?? parsed?.User ?? parsed
-    const plan = u?.plan || u?.subscription || parsed?.plan || parsed?.subscription || 'Free'
+    let plan = u?.plan || u?.subscription || parsed?.plan || parsed?.subscription || 'Free'
+    
+    // Map canonical DB plans back to UI names
+    if (plan === 'Monthly') plan = 'Monthly'
+    if (plan === 'Yearly') plan = 'Yearly'
+
     return {
       name:   u?.name  ?? '',
       email:  u?.email ?? '',
@@ -30,6 +35,7 @@ const tabs = [
   { id: 'notifications', label: 'Notifications', icon: Bell },
   { id: 'security', label: 'Security', icon: Shield },
   { id: 'subscription', label: 'Subscription', icon: CreditCard },
+  { id: 'automation', label: 'Automation', icon: Check },
   { id: 'connected', label: 'Connected', icon: Link2 },
 ]
 
@@ -84,6 +90,115 @@ export default function SettingsPage() {
   const [selectedPlan, setSelectedPlan] = useState(storedUser.plan || 'Free')
   const [isSubscribing, setIsSubscribing] = useState(false)
   const [subscriptionMessage, setSubscriptionMessage] = useState('')
+
+  // Automation settings state
+  const [automationEnabled, setAutomationEnabled] = useState(false)
+  const [automationMaxResults, setAutomationMaxResults] = useState(7)
+  const [automationSearchTime, setAutomationSearchTime] = useState('09:00')
+  const [automationFrequency, setAutomationFrequency] = useState('inferred')
+  const [canEnableAutomation, setCanEnableAutomation] = useState(false)
+  const [isSavingAutomation, setIsSavingAutomation] = useState(false)
+  const [automationMessage, setAutomationMessage] = useState({ text: '', type: '' })
+  const [hasAutomationResume, setHasAutomationResume] = useState(false)
+  const [isUploadingResume, setIsUploadingResume] = useState(false)
+  const automationResumeRef = useRef<HTMLInputElement>(null)
+
+  // Fetch automation settings on mount
+  useState(() => {
+    const raw = localStorage.getItem('userInfo')
+    const token = raw ? JSON.parse(raw)?.token : null
+    if (token) {
+      fetch('/api/email-automation/current', {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (data.email) {
+          setAutomationEnabled(data.emailAutomationEnabled)
+          setAutomationMaxResults(data.emailAutomationMaxResults)
+          setAutomationSearchTime(data.emailAutomationSearchTime)
+          setAutomationFrequency(data.emailAutomationFrequency)
+          setCanEnableAutomation(data.canEnableEmailAutomation)
+          setHasAutomationResume(data.hasAutomationResume)
+        }
+      })
+      .catch(err => console.error('Failed to load automation settings:', err))
+    }
+  })
+
+  const handleSaveAutomation = async () => {
+    setIsSavingAutomation(true)
+    setAutomationMessage({ text: '', type: '' })
+    try {
+      const raw = localStorage.getItem('userInfo')
+      const token = raw ? JSON.parse(raw)?.token : null
+      
+      const res = await fetch('/api/email-automation/settings', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: token ? `Bearer ${token}` : '',
+        },
+        body: JSON.stringify({
+          emailAutomationEnabled: automationEnabled,
+          emailAutomationMaxResults: automationMaxResults,
+          emailAutomationSearchTime: automationSearchTime,
+          emailAutomationFrequency: automationFrequency
+        }),
+      })
+      
+      const data = await res.json()
+      if (!res.ok) {
+        setAutomationMessage({ text: data.message || 'Could not update settings.', type: 'error' })
+        // Revert enabled state if blocked
+        if (res.status === 403) setAutomationEnabled(false)
+        return
+      }
+      
+      setAutomationMessage({ text: 'Automation settings updated successfully!', type: 'success' })
+      setTimeout(() => setAutomationMessage({ text: '', type: '' }), 3000)
+    } catch (error) {
+      setAutomationMessage({ text: 'Unable to update settings. Please try again.', type: 'error' })
+    } finally {
+      setIsSavingAutomation(false)
+    }
+  }
+
+  const handleAutomationResumeUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setIsUploadingResume(true)
+    setAutomationMessage({ text: '', type: '' })
+    try {
+      const raw = localStorage.getItem('userInfo')
+      const token = raw ? JSON.parse(raw)?.token : null
+      
+      const formData = new FormData()
+      formData.append('resume', file)
+
+      const res = await fetch('/api/email-automation/upload-resume', {
+        method: 'POST',
+        headers: {
+          Authorization: token ? `Bearer ${token}` : '',
+        },
+        body: formData,
+      })
+
+      const data = await res.json()
+      if (!res.ok) {
+        setAutomationMessage({ text: data.message || 'Failed to upload resume.', type: 'error' })
+        return
+      }
+
+      setHasAutomationResume(true)
+      setAutomationMessage({ text: 'Automation resume uploaded successfully!', type: 'success' })
+      setTimeout(() => setAutomationMessage({ text: '', type: '' }), 3000)
+    } catch (err) {
+      setAutomationMessage({ text: 'Unable to upload resume.', type: 'error' })
+    } finally {
+      setIsUploadingResume(false)
+    }
+  }
 
   const handleSave = () => {
     const raw = localStorage.getItem('userInfo')
@@ -387,6 +502,105 @@ export default function SettingsPage() {
 
               <Button onClick={() => handleSubscribe(selectedPlan)} loading={isSubscribing} disabled={selectedPlan === currentPlan} className="w-full">
                 {selectedPlan === currentPlan ? 'Current plan active' : `Subscribe to ${selectedPlan}`}
+              </Button>
+            </Card>
+          )}
+
+          {activeTab === 'automation' && (
+            <Card className="p-6 space-y-6">
+              <div>
+                <h2 className="font-semibold text-gray-900">Email Automation</h2>
+                <p className="text-sm text-gray-500 mt-1">Configure automated AI job searches sent directly to your inbox.</p>
+              </div>
+
+              {!canEnableAutomation && (
+                <div className="p-4 bg-orange-50 border border-orange-200 rounded-xl mb-4">
+                  <p className="text-sm text-orange-800 font-medium flex items-center gap-2">
+                    <Shield className="w-4 h-4" /> Pro Feature
+                  </p>
+                  <p className="text-sm text-orange-700 mt-1">
+                    Email automation requires an active Monthly or Yearly subscription. Upgrade your plan to enable this feature.
+                  </p>
+                </div>
+              )}
+
+              <div className="flex items-center justify-between py-4 border-b border-gray-100">
+                <div>
+                  <p className="text-sm font-medium text-gray-900">Enable Automation</p>
+                  <p className="text-xs text-gray-400">Receive automated job matches via email</p>
+                </div>
+                <button 
+                  onClick={() => canEnableAutomation && setAutomationEnabled(!automationEnabled)} 
+                  disabled={!canEnableAutomation}
+                  className={cn('relative w-11 h-6 rounded-full transition-colors', automationEnabled ? 'bg-[#FF4500]' : 'bg-gray-200', !canEnableAutomation && 'opacity-50 cursor-not-allowed')}>
+                  <span className={cn('absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform', automationEnabled && 'translate-x-5')} />
+                </button>
+              </div>
+
+              <div className={cn("space-y-4 transition-opacity", !automationEnabled && "opacity-50 pointer-events-none")}>
+                <div className="p-4 border border-gray-200 rounded-xl bg-gray-50">
+                  <p className="text-sm font-medium text-gray-900">Automation Resume</p>
+                  <p className="text-xs text-gray-500 mt-1 mb-3">Upload a resume to dynamically match jobs for your automated emails.</p>
+                  <div className="flex items-center gap-3">
+                    <Button variant="secondary" onClick={() => automationResumeRef.current?.click()} loading={isUploadingResume}>
+                      <Upload className="w-4 h-4" /> Upload Resume (PDF/DOCX)
+                    </Button>
+                    <input ref={automationResumeRef} type="file" accept=".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document" className="hidden" onChange={handleAutomationResumeUpload} />
+                    {hasAutomationResume && (
+                      <div className="flex items-center gap-1.5 text-sm text-green-600 font-medium bg-green-50 px-2.5 py-1 rounded-lg">
+                        <Check className="w-4 h-4" /> Resume Uploaded
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <div className="grid sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-sm font-medium text-gray-700">Max Results per Email</label>
+                    <input 
+                      type="number" 
+                      min="1" max="50"
+                      value={automationMaxResults} 
+                      onChange={e => setAutomationMaxResults(Number(e.target.value))}
+                      className="mt-1.5 w-full px-3 py-2 rounded-lg border border-gray-200 text-sm outline-none focus:border-[#FF4500] focus:ring-2 focus:ring-[#FF4500]/10" 
+                    />
+                    <p className="text-xs text-gray-400 mt-1">Between 1 and 50 matches</p>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-700">Delivery Time</label>
+                    <input 
+                      type="time" 
+                      value={automationSearchTime} 
+                      onChange={e => setAutomationSearchTime(e.target.value)}
+                      className="mt-1.5 w-full px-3 py-2 rounded-lg border border-gray-200 text-sm outline-none focus:border-[#FF4500] focus:ring-2 focus:ring-[#FF4500]/10" 
+                    />
+                    <p className="text-xs text-gray-400 mt-1">Time of day to send the email</p>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="text-sm font-medium text-gray-700">Frequency</label>
+                  <select 
+                    value={automationFrequency} 
+                    onChange={e => setAutomationFrequency(e.target.value)}
+                    className="mt-1.5 w-full px-3 py-2 rounded-lg border border-gray-200 text-sm outline-none focus:border-[#FF4500] focus:ring-2 focus:ring-[#FF4500]/10"
+                  >
+                    <option value="inferred">Inferred (Based on activity)</option>
+                    <option value="monthly">Monthly</option>
+                    <option value="yearly">Yearly</option>
+                  </select>
+                </div>
+              </div>
+
+              {automationMessage.text && (
+                <div className={cn("rounded-xl p-4 text-sm font-medium", 
+                  automationMessage.type === 'error' ? 'bg-red-50 text-red-700 border border-red-100' : 'bg-green-50 text-green-700 border border-green-100')}>
+                  {automationMessage.text}
+                </div>
+              )}
+
+              <Button onClick={handleSaveAutomation} loading={isSavingAutomation} className="w-full sm:w-auto mt-4">
+                <Save className="w-4 h-4" /> Save Automation Settings
               </Button>
             </Card>
           )}

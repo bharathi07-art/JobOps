@@ -85,7 +85,7 @@ const statusColors: Record<string, string> = {
 }
 
 export default function AnalyticsPage() {
-  const { isPremium } = useSubscription()
+  const { isPremium, loading } = useSubscription()
   const { isUpgradeModalOpen, upgradeInfo, showUpgradeModal, closeUpgradeModal } = useUpgradePrompt({
     featureName: 'Advanced Analytics',
   })
@@ -104,6 +104,16 @@ export default function AnalyticsPage() {
   }, [])
 
   const isEmpty = !data.hasAiData && !data.hasApps && data.savedCount === 0
+
+  if (loading) {
+    return (
+      <DashboardLayout>
+        <div className="flex items-center justify-center min-h-[50vh]">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#FF4500]"></div>
+        </div>
+      </DashboardLayout>
+    )
+  }
 
   if (!isPremium) {
     return (

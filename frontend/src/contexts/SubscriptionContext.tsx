@@ -45,7 +45,15 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
 
   const refreshSubscription = async () => {
     try {
-      const token = localStorage.getItem('token');
+      const rawUser = localStorage.getItem('userInfo');
+      let token = null;
+      if (rawUser) {
+        try {
+          const parsed = JSON.parse(rawUser);
+          token = parsed.token;
+        } catch { /* ignore */ }
+      }
+
       if (!token) {
         setLoading(false);
         return;
@@ -74,6 +82,10 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     refreshSubscription();
+
+    // Re-fetch subscription data when settings are updated
+    window.addEventListener('userInfoUpdated', refreshSubscription);
+    return () => window.removeEventListener('userInfoUpdated', refreshSubscription);
   }, []);
 
   // show first-time onboarding modal when a newly registered user lands (no subscription and just created)

@@ -224,9 +224,9 @@ export default function AdminSubscriptionAnalytics() {
                         animate={{ width: `${percentage}%` }}
                         transition={{ duration: 0.6, delay: idx * 0.1 }}
                         className={`h-full rounded-full ${
-                          item.plan === 'ProYearly'
+                          item.plan === 'Yearly'
                             ? 'bg-gradient-to-r from-[#FF4500] to-orange-400'
-                            : item.plan === 'ProMonthly'
+                            : item.plan === 'Monthly'
                               ? 'bg-[#FF4500]'
                               : 'bg-gray-400'
                         }`}
