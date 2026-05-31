@@ -7,6 +7,7 @@ import VerifyOTP from './componenets/VerifyOTP'
 import Dashboard from './pages/dashboard/Dashboard'
 import ResumePage from './pages/dashboard/ResumePage'
 import { SubscriptionProvider } from './contexts/SubscriptionContext'
+import { useSubscription } from './contexts/SubscriptionContext'
 import JobsPage from './pages/dashboard/JobsPage'
 import ApplicationsPage from './pages/dashboard/ApplicationsPage'
 import SavedJobsPage from './pages/dashboard/SavedJobsPage'
@@ -36,7 +37,19 @@ function parseUserInfo() {
 }
 
 function RequireAuth({ children, adminRequired = false }: { children: React.ReactNode; adminRequired?: boolean }) {
+  const { loading } = useSubscription()
   const userInfo = parseUserInfo()
+
+  // Wait for subscription context to finish initialising before making
+  // any routing decision — prevents the white-page flash for admin users
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#FFF8F4]">
+        <div className="w-8 h-8 border-4 border-orange-100 border-t-[#FF4500] rounded-full animate-spin" />
+      </div>
+    )
+  }
+
   if (!userInfo) return <Navigate to="/login" replace />
   if (adminRequired && !userInfo.isAdmin) return <Navigate to="/login" replace />
   return <>{children}</>

@@ -47,14 +47,18 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
     try {
       const rawUser = localStorage.getItem('userInfo');
       let token = null;
+      let isAdmin = false;
       if (rawUser) {
         try {
           const parsed = JSON.parse(rawUser);
           token = parsed.token;
+          isAdmin = Boolean(parsed.isAdmin);
         } catch { /* ignore */ }
       }
 
-      if (!token) {
+      // Admin users don't have a subscription — skip the fetch entirely
+      // to avoid the 401 response that was blanking the admin page
+      if (!token || isAdmin) {
         setLoading(false);
         return;
       }
