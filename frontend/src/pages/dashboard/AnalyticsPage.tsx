@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
+import axios from 'axios'
 import { Send, TrendingUp, Star, Bookmark, Sparkles, Brain, Target, Activity, Lock } from 'lucide-react'
 import { DashboardLayout } from '../../components/layout/DashboardLayout'
 import { Card } from '../../components/ui/index'
@@ -8,6 +9,7 @@ import type { Application } from '../../types'
 import { useSubscription } from '../../contexts/SubscriptionContext'
 import { useUpgradePrompt } from '../../hooks/useUpgradePrompt'
 import { UpgradeModal } from '../../components/UpgradeModal'
+import { UpgradeBanner } from '../../utils/UpgradeBanner'
 
 interface AIResult {
   matched_jobs?: { match_percentage: number; category: string }[]
@@ -89,19 +91,83 @@ export default function AnalyticsPage() {
   const { isUpgradeModalOpen, upgradeInfo, showUpgradeModal, closeUpgradeModal } = useUpgradePrompt({
     featureName: 'Advanced Analytics',
   })
+  const [apiUpgradeInfo, setApiUpgradeInfo] = useState<{ message: string; requiredPlans: string[]; upgradeUrl: string } | null>(null)
 
-  const [data, setData] = useState(loadRealData)
+  // Initialize empty data structure
+  const initialData = {
+    totalMatched: 0,
+    totalApplied: 0,
+    highestMatch: 0,
+    avgMatch: 0,
+    savedCount: 0,
+    resumeScore: 0,
+    atsScore: 0,
+    recommendationCount: 0,
+    weekly: [],
+    statusCounts: {},
+    matchScores: [],
+    hasAiData: false,
+    hasApps: false,
+  };
+  const [data, setData] = useState(initialData);
 
-  // Refresh when applications or AI results change
+
+  // Fetch latest AI result and analytics data from backend
   useEffect(() => {
-    const refresh = () => setData(loadRealData())
-    window.addEventListener('applicationsUpdated', refresh)
-    window.addEventListener('storage', refresh)
+    const fetchData = async () => {
+      try {
+        const [aiRes, analyticsRes] = await Promise.all([
+          axios.get('/api/ai/latest'),
+          axios.get('/api/analytics'),
+        ]);
+        const ai = aiRes.data?.result || null;
+        const analytics = analyticsRes.data?.analytics || {};
+        const apps = JSON.parse(localStorage.getItem('trackedApplications') ?? '[]');
+        const savedKeys = JSON.parse(localStorage.getItem('savedJobKeys') ?? '[]');
+        const jobs = ai?.matched_jobs ?? [];
+        const matchScores = jobs.map(j => j.match_percentage);
+        const avgMatch = matchScores.length ? Math.round(matchScores.reduce((a,b)=>a+b,0)/matchScores.length) : 0;
+        const highestMatch = matchScores.length ? Math.max(...matchScores) : 0;
+        const weekly = analytics.weekly || [];
+        const statusCounts = analytics.statusCounts || {};
+        setData({
+          totalMatched: jobs.length,
+          totalApplied: apps.length,
+          highestMatch,
+          avgMatch,
+          savedCount: savedKeys.length,
+          resumeScore: ai?.resume_score ?? 0,
+          atsScore: ai?.ats_score ?? 0,
+          recommendationCount: ai?.recommendations?.length ?? 0,
+          weekly,
+          statusCounts,
+          matchScores,
+          hasAiData: !!ai,
+          hasApps: apps.length > 0,
+        });
+      } catch (err: any) {
+        if (err.response?.status === 403) {
+          setApiUpgradeInfo({
+            message: err.response?.data?.message || 'Upgrade required',
+            requiredPlans: err.response?.data?.requiredPlans || [],
+            upgradeUrl: err.response?.data?.upgradeUrl || '/dashboard/pricing',
+          });
+        } else {
+          console.error('Failed to fetch analytics data', err);
+        }
+      }
+    };
+    fetchData();
+    // also set up listeners for updates
+    const refresh = () => fetchData();
+    window.addEventListener('applicationsUpdated', refresh);
+    window.addEventListener('storage', refresh);
     return () => {
-      window.removeEventListener('applicationsUpdated', refresh)
-      window.removeEventListener('storage', refresh)
-    }
-  }, [])
+      window.removeEventListener('applicationsUpdated', refresh);
+      window.removeEventListener('storage', refresh);
+    };
+  }, []);
+
 
   const isEmpty = !data.hasAiData && !data.hasApps && data.savedCount === 0
 
@@ -115,63 +181,17 @@ export default function AnalyticsPage() {
     )
   }
 
-  if (!isPremium) {
-    return (
-      <DashboardLayout>
-        <div className="max-w-2xl mx-auto space-y-5">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">Analytics</h1>
-            <p className="text-gray-500 mt-1">Advanced insights are available on Pro.</p>
-          </div>
-
-          <Card className="p-6">
-            <div className="flex items-start gap-4">
-              <div className="w-12 h-12 bg-orange-50 rounded-xl flex items-center justify-center shrink-0">
-                <Lock className="w-6 h-6 text-[#FF4500]" />
-              </div>
-
-              <div className="flex-1 space-y-3">
-                <h2 className="font-semibold text-gray-900">Restricted feature</h2>
-
-                {/* Textbox style restriction message */}
-                <div className="bg-gray-50 border border-gray-200 rounded-xl p-4">
-                  <div className="text-sm font-medium text-gray-900 mb-1">
-                    Your current plan can’t access this page
-                  </div>
-                  <div className="text-sm text-gray-600">
-                    Analytics (Resume intelligence + application pipeline) is only available for Pro Monthly/Yearly users.
-                  </div>
-                </div>
-
-                <div className="flex gap-3 flex-wrap">
-                  <button
-                    onClick={() => showUpgradeModal('feature-locked', 'Advanced Analytics')}
-                    className="px-4 py-2 rounded-lg bg-[#FF4500] text-white text-sm font-medium hover:bg-[#e03e00] transition-colors"
-                  >
-                    Upgrade to Pro
-                  </button>
-                  <a
-                    href="/dashboard/settings"
-                    className="px-4 py-2 rounded-lg bg-white border border-gray-200 text-gray-700 text-sm font-medium hover:border-[#FF4500] transition-colors"
-                  >
-                    View plans
-                  </a>
-                </div>
-              </div>
-            </div>
-          </Card>
-
-          <UpgradeModal
-            isOpen={isUpgradeModalOpen}
-            onClose={closeUpgradeModal}
-            reason={upgradeInfo.reason as any}
-            featureName={upgradeInfo.featureName}
-            message={upgradeInfo.message}
+    if (!isPremium) {
+      return (
+        <DashboardLayout>
+          <UpgradeBanner
+            message={apiUpgradeInfo?.message || 'Upgrade required to access analytics'}
+            requiredPlans={apiUpgradeInfo?.requiredPlans || []}
+            upgradeUrl={apiUpgradeInfo?.upgradeUrl || '/dashboard/pricing'}
           />
-        </div>
-      </DashboardLayout>
-    )
-  }
+        </DashboardLayout>
+      );
+    }
 
   const statCards = [
     { label: 'Jobs Matched', value: data.totalMatched, icon: Sparkles, color: 'text-[#FF4500]', note: data.hasAiData ? 'From AI analysis' : 'No resume analyzed yet' },

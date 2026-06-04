@@ -36,12 +36,11 @@ function parseUserInfo() {
   }
 }
 
-function RequireAuth({ children, adminRequired = false }: { children: React.ReactNode; adminRequired?: boolean }) {
+// ── User dashboard guard — waits for subscription context to resolve ───────────
+function RequireAuth({ children }: { children: React.ReactNode }) {
   const { loading } = useSubscription()
   const userInfo = parseUserInfo()
 
-  // Wait for subscription context to finish initialising before making
-  // any routing decision — prevents the white-page flash for admin users
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#FFF8F4]">
@@ -51,7 +50,16 @@ function RequireAuth({ children, adminRequired = false }: { children: React.Reac
   }
 
   if (!userInfo) return <Navigate to="/login" replace />
-  if (adminRequired && !userInfo.isAdmin) return <Navigate to="/login" replace />
+  return <>{children}</>
+}
+
+// ── Admin guard — purely synchronous, zero subscription dependency ─────────────
+// Admin users don't have subscriptions so we must NEVER block on loading state.
+// This is a plain synchronous localStorage check — no hooks that touch subscription.
+function AdminRequireAuth({ children }: { children: React.ReactNode }) {
+  const userInfo = parseUserInfo()
+  if (!userInfo) return <Navigate to="/login" replace />
+  if (!userInfo.isAdmin) return <Navigate to="/login" replace />
   return <>{children}</>
 }
 
@@ -77,14 +85,14 @@ function App() {
           <Route path="/dashboard/settings" element={<RequireAuth><SettingsPage /></RequireAuth>} />
           <Route path="/dashboard/help" element={<RequireAuth><HelpCenterPage /></RequireAuth>} />
           {/* Admin */}
-          <Route path="/admin" element={<RequireAuth adminRequired><AdminOverview /></RequireAuth>} />
-          <Route path="/admin/analytics" element={<RequireAuth adminRequired><AdminAnalytics /></RequireAuth>} />
-          <Route path="/admin/subscriptions" element={<RequireAuth adminRequired><AdminSubscriptions /></RequireAuth>} />
-          <Route path="/admin/revenue" element={<RequireAuth adminRequired><AdminRevenue /></RequireAuth>} />
-          <Route path="/admin/feedback" element={<RequireAuth adminRequired><AdminFeedback /></RequireAuth>} />
-          <Route path="/admin/users" element={<RequireAuth adminRequired><AdminUsers /></RequireAuth>} />
-          <Route path="/admin/ai-monitor" element={<RequireAuth adminRequired><AdminAIMonitor /></RequireAuth>} />
-          <Route path="/admin/settings" element={<RequireAuth adminRequired><AdminSettings /></RequireAuth>} />
+          <Route path="/admin" element={<AdminRequireAuth><AdminOverview /></AdminRequireAuth>} />
+          <Route path="/admin/analytics" element={<AdminRequireAuth><AdminAnalytics /></AdminRequireAuth>} />
+          <Route path="/admin/subscriptions" element={<AdminRequireAuth><AdminSubscriptions /></AdminRequireAuth>} />
+          <Route path="/admin/revenue" element={<AdminRequireAuth><AdminRevenue /></AdminRequireAuth>} />
+          <Route path="/admin/feedback" element={<AdminRequireAuth><AdminFeedback /></AdminRequireAuth>} />
+          <Route path="/admin/users" element={<AdminRequireAuth><AdminUsers /></AdminRequireAuth>} />
+          <Route path="/admin/ai-monitor" element={<AdminRequireAuth><AdminAIMonitor /></AdminRequireAuth>} />
+          <Route path="/admin/settings" element={<AdminRequireAuth><AdminSettings /></AdminRequireAuth>} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
         <AIChatbot />

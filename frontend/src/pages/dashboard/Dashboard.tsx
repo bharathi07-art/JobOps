@@ -7,6 +7,7 @@ import { Card, StatCard } from '../../components/ui/index'
 import { weeklyActivity } from '../../data/mockData'
 import { useSubscription } from '../../contexts/SubscriptionContext'
 import SetPasswordModal from '../../components/SetPasswordModal'
+import UsageBanner from '../../components/UsageBanner'
 
 interface MatchedJob {
   title: string
@@ -50,8 +51,10 @@ export default function Dashboard() {
   const navigate = useNavigate()
   const [aiResult, setAiResult] = useState<AIResult | null>(null)
 
+  const [showPasswordModal, setShowPasswordModal] = useState(false)
+
   useEffect(() => {
-    // Handle Google OAuth callback
+    // Handle Google/GitHub OAuth callback — token arrives as URL query params
     const params = new URLSearchParams(window.location.search)
     const token = params.get('token')
     const isAdmin = params.get('isAdmin')
@@ -59,12 +62,14 @@ export default function Dashboard() {
     const name = params.get('name')
     const email = params.get('email')
     const avatar = params.get('avatar')
+    const hasPassword = params.get('hasPassword') // 'true' or 'false'
 
     if (token) {
       const userInfo = {
         token,
         isAdmin: isAdmin === 'true',
         plan: plan || 'Free',
+        hasPassword: hasPassword !== 'false', // persist for future checks
         user: {
           id: '',
           name: name || '',
@@ -74,15 +79,30 @@ export default function Dashboard() {
         }
       }
       localStorage.setItem('userInfo', JSON.stringify(userInfo))
-      // Clean up URL
+      // Clean up URL so params don't persist on refresh
       window.history.replaceState({}, document.title, window.location.pathname)
 
       if (isAdmin === 'true') {
         navigate('/admin')
         return
       }
+
+      // New OAuth user with no password yet — show the set-password modal
+      if (hasPassword === 'false') {
+        setShowPasswordModal(true)
+      }
+    } else {
+      // Check if an existing OAuth user still hasn't set a password
+      // (e.g. they skipped on first login and came back)
+      try {
+        const stored = JSON.parse(localStorage.getItem('userInfo') || 'null')
+        if (stored && stored.hasPassword === false) {
+          setShowPasswordModal(true)
+        }
+      } catch { /* ignore */ }
     }
   }, [navigate])
+
 
   useEffect(() => {
     // 1. Load from local storage immediately for fast UI
@@ -144,8 +164,26 @@ export default function Dashboard() {
     { label: 'ATS Score', value: atsScore > 0 ? `${atsScore}` : '—', change: atsScore >= 70 ? 'ATS friendly' : atsScore > 0 ? 'Improve formatting' : 'Upload resume', positive: atsScore >= 60 },
   ]
 
+  const handlePasswordModalClose = () => {
+    setShowPasswordModal(false)
+    // Mark as "seen" so we don't re-show on every visit when user skips.
+    // If they successfully set a password the backend handles the truth,
+    // but we still update the local flag so we stop re-prompting.
+    try {
+      const stored = JSON.parse(localStorage.getItem('userInfo') || 'null')
+      if (stored) {
+        stored.hasPassword = true
+        localStorage.setItem('userInfo', JSON.stringify(stored))
+      }
+    } catch { /* ignore */ }
+  }
+
   return (
     <DashboardLayout>
+      {/* Set-Password Modal — shown to new OAuth users on first login */}
+      {showPasswordModal && (
+        <SetPasswordModal required onClose={handlePasswordModalClose} />
+      )}
       <div className="space-y-6">
         {/* Welcome */}
         <motion.div {...fadeUp(0)} className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -257,47 +295,10 @@ export default function Dashboard() {
           </motion.div>
         </div>
 
-        {/* Upgrade promotion for free users */}
+        {/* Usage limits and upgrade banner for free users */}
         {!isPremium && (
           <motion.div {...fadeUp(7)}>
-            <Card className="p-6 rounded-3xl border border-orange-200 bg-orange-50">
-              <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
-                <div>
-                  <p className="text-sm font-semibold text-orange-700 uppercase tracking-[0.16em]">Prize Details</p>
-                  <h2 className="mt-2 text-xl font-bold text-gray-900">
-                    {hasNeverActivatedPlan ? 'Activate your first plan to unlock premium access' : 'Upgrade to unlock premium rewards'}
-                  </h2>
-                  <p className="mt-2 text-sm text-gray-600 max-w-xl">
-                    {hasNeverActivatedPlan
-                      ? 'You currently do not have an active plan. Activate your first plan now to enjoy premium AI job matching, resume boosts, and priority alerts.'
-                      : 'Free users can still explore JobOps, but Premium unlocks unlimited AI job matches, priority resume boosts, and early access to high-value referrals.'}
-                  </p>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="rounded-full bg-orange-100 px-3 py-2 text-sm font-medium text-orange-700">
-                    {hasNeverActivatedPlan ? 'No Active Plan' : 'Free Plan'}
-                  </span>
-                </div>
-              </div>
-              <div className="grid sm:grid-cols-3 gap-3 mt-6">
-                {[
-                  { label: 'Unlimited AI Matches', description: 'No monthly cap for smart job recommendations.' },
-                  { label: 'Resume Score Boosts', description: 'Extra insights to improve your resume instantly.' },
-                  { label: 'Priority Job Alerts', description: 'Be first to see the best fit roles for your profile.' },
-                ].map((item) => (
-                  <div key={item.label} className="rounded-3xl bg-white p-4 shadow-sm">
-                    <p className="text-sm font-semibold text-gray-900">{item.label}</p>
-                    <p className="mt-2 text-xs text-gray-500">{item.description}</p>
-                  </div>
-                ))}
-              </div>
-              <div className="mt-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                <p className="text-sm text-gray-600">Current plan: <span className="font-semibold text-gray-900">{hasNeverActivatedPlan ? 'None' : planName}</span></p>
-                <Link to="/dashboard/settings" className="inline-flex items-center justify-center rounded-full bg-[#FF4500] px-4 py-2 text-sm font-semibold text-white hover:bg-[#e03e00] transition-colors">
-                  {hasNeverActivatedPlan ? 'Activate Plan' : 'Upgrade Now'}
-                </Link>
-              </div>
-            </Card>
+            <UsageBanner />
           </motion.div>
         )}
 

@@ -3,6 +3,7 @@ import express from "express";
 import type { Request, Response } from "express";
 import cors from "cors";
 import connDB from "./config/mDB";
+import cookieParser from 'cookie-parser';
 import session from 'express-session';
 
 import passport from 'passport';
@@ -22,8 +23,12 @@ const app = express();
 
 
 
-app.use(cors());
+app.use(cors({
+  origin: "http://localhost:5173",
+  credentials: true}
+));
 app.use(express.json());
+app.use(cookieParser());
 
 app.get("/", (req: Request, res: Response) => {
   res.send("Server is running");

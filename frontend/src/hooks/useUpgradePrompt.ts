@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useCallback } from 'react';
 import { useSubscription } from '../contexts/SubscriptionContext';
 
 interface UseUpgradePromptOptions {
@@ -8,32 +8,20 @@ interface UseUpgradePromptOptions {
 }
 
 export function useUpgradePrompt(options: UseUpgradePromptOptions = {}) {
-  const { canPerformAction, isPremium } = useSubscription();
-
-  const [isUpgradeModalOpen, setIsUpgradeModalOpen] = useState(false);
-  const [upgradeInfo, setUpgradeInfo] = useState({
-    reason: options.reason || 'feature-locked',
-    featureName: options.featureName || 'Premium Feature',
-    message: options.customMessage,
-  });
+  const { canPerformAction, isPremium, showUpgradeModal: globalShowUpgradeModal } = useSubscription();
 
   const showUpgradeModal = useCallback(
     (
       newReason: 'usage-limit' | 'feature-locked' | 'custom' = 'feature-locked',
       feature = 'Premium Feature'
     ) => {
-      setUpgradeInfo({
-        reason: newReason,
-        featureName: feature,
-        message: options.customMessage,
-      });
-      setIsUpgradeModalOpen(true);
+      globalShowUpgradeModal(feature);
     },
-    [options.customMessage]
+    [globalShowUpgradeModal]
   );
 
   const checkAndPromptUpgrade = useCallback(
-    (action: 'aiSearch' | 'saveJob' | 'uploadResume'): boolean => {
+    (action: 'aiSearch' | 'saveJob' | 'uploadResume' | 'askQuestion' | 'application'): boolean => {
       if (isPremium) {
         return true; // Premium users can always perform actions
       }
@@ -45,9 +33,11 @@ export function useUpgradePrompt(options: UseUpgradePromptOptions = {}) {
           aiSearch: 'AI searches',
           saveJob: 'saved jobs',
           uploadResume: 'resume uploads',
+          askQuestion: 'assistant questions',
+          application: 'applications',
         };
 
-        showUpgradeModal('usage-limit', actionNames[action]);
+        showUpgradeModal('usage-limit', actionNames[action] || action);
         return false;
       }
 
@@ -60,15 +50,8 @@ export function useUpgradePrompt(options: UseUpgradePromptOptions = {}) {
     [isPremium, canPerformAction, showUpgradeModal]
   );
 
-  const closeUpgradeModal = useCallback(() => {
-    setIsUpgradeModalOpen(false);
-  }, []);
-
   return {
-    isUpgradeModalOpen,
-    upgradeInfo,
     showUpgradeModal,
-    closeUpgradeModal,
     checkAndPromptUpgrade,
     isPremium,
     canPerformAction,

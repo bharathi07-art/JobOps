@@ -46,11 +46,12 @@ export const register = async (req:Request, res:Response):Promise<void>=>{
         });
 
         //create JWT
-        const token =jwt.sign(
-            {id: user.id},
-            JWT_SECRET,
-            {expiresIn: "30d"},
-        )
+        const payload = { id: user.id, isAdmin: !!user.isAdmin };
+        const token = jwt.sign(
+          payload,
+          JWT_SECRET,
+          { expiresIn: "30d" },
+        );
 
          const sub = await getUserSubscription(user.id);
 
@@ -100,15 +101,23 @@ export const login = async (req: Request, res: Response): Promise<Response> => {
       });
     }
 
-    const token = jwt.sign(
-      { id: user.id },
-      process.env.JWT_SECRET as string,
-      { expiresIn: "30d" }
-    );
-
+        const payload = { id: user.id, isAdmin: !!user.isAdmin };
+        const token = jwt.sign(
+          payload,
+          JWT_SECRET,
+          { expiresIn: "30d" },
+        );
+    //store in cookies
+    res.cookie("token",token,{
+      httpOnly:true,
+      secure:false,
+      sameSite:"lax",
+      maxAge:30 * 24 * 60 * 60 * 1000
+    });
     const sub = await getUserSubscription(user.id);
 
     return res.status(200).json({
+      success:true,
       message: "Login successful",
       token,
       isAdmin: user.isAdmin,
@@ -167,6 +176,12 @@ export const googleAuthCallback = async (req: Request, res: Response): Promise<v
       JWT_SECRET,
       { expiresIn: "30d" }
     );
+    //use cookies
+    res.cookie("token", token, {
+      httpOnly:true,
+      secure:false,
+      sameSite:"lax"
+    })
 
     // Redirect to frontend with token and user info
     const hasPassword = user.password !== '';
@@ -192,6 +207,13 @@ export const githubAuthCallback = async (req: Request, res: Response): Promise<v
       JWT_SECRET,
       { expiresIn: "30d" }
     );
+
+     //use cookies
+    res.cookie("token", token, {
+      httpOnly:true,
+      secure:false,
+      sameSite:"lax"
+    })
 
     // Redirect to frontend with token and user info
     const hasPassword = user.password !== '';

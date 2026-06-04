@@ -6,6 +6,7 @@ import AIResultModel from "../models/AIResult";
 import ResumeModel from "../models/ResumeModel";
 import LogModel from "../models/Log";
 import AnalyticsModel from "../models/Analytics";
+import { incrementUsage } from "../services/subscriptionService";
 
 // ── Analyze Resume ────────────────────────────────────────────────────────────
 export const analyzeResume = async (req: Request, res: Response) => {
@@ -54,12 +55,10 @@ export const analyzeResume = async (req: Request, res: Response) => {
         contents: [{
           role: "user",
           parts: [{
-            text: `You are an AI job matching engine. Analyze the resume and return a JSON object.
+            text: `I will upload my resume. I want you to act as an AI recruiter and Job hunting machine. Analyse my resume in depth to identify the most suitable fresher or entry-level (the role mentioned in resume) role for me to target in India and outside of the India. Find companies across startups, MNCs, service-based, product-based companies currently hiring, make sure to provide the verified ones. Use indeed connector as well to find jobs apart from finding jobs from web search. Match every job opening with my resume and provide the score out of 100 matching with my profile. Create a list of 50 such opportunities. Create a job application categorized with the score with high, medium and low probability.
 
 Resume:
 ${resumeText}
-
-Task: Identify suitable fresher/entry-level MERN Stack developer roles in India. List at least 10 job opportunities from startups, MNCs, service-based and product-based companies.
 
 Return ONLY this exact JSON structure with these exact keys:
 {
@@ -73,19 +72,19 @@ Return ONLY this exact JSON structure with these exact keys:
       "company": "Company Name",
       "location": "City, India",
       "match_percentage": <number 0-100>,
-      "category": "high",
+      "category": "high|medium|low",
       "career_url": "https://careers.companyname.com",
-      "job_url": "https://careers.companyname.com/jobs/junior-mern-stack-developer-12345",
-      "search_url": "https://careers.companyname.com/jobs?q=MERN+Stack+Developer&location=India"
+      "job_url": "https://careers.companyname.com/jobs/junior-developer-12345",
+      "search_url": "https://careers.companyname.com/jobs?q=Developer&location=India"
     }
   ]
 }
 Rules:
 - category must be "high" if match_percentage >= 70, "medium" if >= 40, else "low"
-- career_url must be the real official careers/jobs page URL of the company (e.g. https://careers.google.com). Never use job board URLs like linkedin.com or naukri.com.
-- job_url must be the DIRECT URL to the specific job vacancy listing page on the company's own careers portal. This is the most important field — users will click this to apply to THAT exact job. If you cannot find a real direct link, construct the most specific URL possible using the company's known careers URL pattern.
-- search_url must be a URL that pre-fills a search for this job title on the company's careers portal (use query parameters like ?q=, ?keyword=, ?search=, or ?title= as appropriate for that company's portal). This is used as a fallback if job_url is unavailable.
-- All three URL fields must point to the company's own official domain, never third-party job boards.`
+- career_url must be the real official careers/jobs page URL of the company (no job board URLs)
+- job_url must be the DIRECT URL to the specific job vacancy listing page on the company's own careers portal.
+- search_url must be a URL that pre-fills a search for this job title on the company's careers portal.
+`
           }]
         }]
       },
@@ -132,6 +131,10 @@ Rules:
       status: "success",
       detail: `Analyzed ${file.originalname} — ${parsed.matched_jobs?.length ?? 0} jobs matched`,
     });
+
+    // Increment usage counters
+    await incrementUsage(userId, "aiSearchesUsed");
+    await incrementUsage(userId, "resumeUploadsCount");
 
     res.status(200).json({ success: true, result: raw, id: savedResult._id });
 
@@ -221,6 +224,25 @@ export const getHistory = async (req: Request, res: Response) => {
 };
 
 // ── Get Latest Full AI Result ────────────────────────────────────────────────
+// ── Get Latest Full AI Result (original) ────────────────────────────────────────────────
+// ── Get Matched Jobs (for UI) ────────────────────────────────────────────────
+export const getMatchedJobs = async (req: Request, res: Response) => {
+  const userId = (req as any).user?.id;
+  if (!userId) {
+    res.status(401).json({ message: "Unauthorized: User ID not found" });
+    return;
+  }
+  try {
+    const latest = await AIResultModel.findOne({ userId }).sort({ createdAt: -1 });
+    const matched = latest?.matched_jobs ?? [];
+    res.status(200).json({ success: true, matched_jobs: matched });
+  } catch (error: any) {
+    console.error('Error fetching matched jobs:', error);
+    res.status(500).json({ message: "Failed to fetch matched jobs" });
+  }
+};
+
+// ── Get Latest Full AI Result (original) ────────────────────────────────────────────────
 export const getLatestResult = async (req: Request, res: Response) => {
   const userId = (req as any).user?.id;
   if (!userId) {
@@ -235,9 +257,12 @@ export const getLatestResult = async (req: Request, res: Response) => {
     }
     res.status(200).json({ success: true, result: latest });
   } catch (error: any) {
+    console.error('Error fetching latest result:', error);
     res.status(500).json({ message: "Failed to fetch latest result" });
   }
 };
+
+
 
 // ── Get Analytics ─────────────────────────────────────────────────────────────
 export const getAnalytics = async (req: Request, res: Response) => {

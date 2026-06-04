@@ -1,7 +1,6 @@
 import { useState, useCallback, useRef } from 'react'
 import { useSubscription } from '../../contexts/SubscriptionContext'
 import { useUpgradePrompt } from '../../hooks/useUpgradePrompt'
-import { UpgradeModal } from '../../components/UpgradeModal'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   Upload, FileText, CheckCircle, Sparkles, X,
@@ -66,10 +65,7 @@ export default function ResumePage() {
 
   const { isPremium } = useSubscription()
   const {
-    isUpgradeModalOpen,
-    upgradeInfo,
     showUpgradeModal,
-    closeUpgradeModal,
     checkAndPromptUpgrade,
   } = useUpgradePrompt({ featureName: 'Resume Analysis' })
 
@@ -519,14 +515,6 @@ export default function ResumePage() {
         </AnimatePresence>
       </div>
 
-      {/* Upgrade modal for gated actions */}
-      <UpgradeModal
-        isOpen={isUpgradeModalOpen}
-        onClose={closeUpgradeModal}
-        reason={upgradeInfo.reason as any}
-        featureName={upgradeInfo.featureName}
-        message={upgradeInfo.message}
-      />
     </DashboardLayout>
   )
 }

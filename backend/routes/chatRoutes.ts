@@ -8,7 +8,7 @@ import { sendChat, upsertChatKnowledge, getKnowledge } from '../controller/aiCha
 
 const router = express.Router();
 
-router.post('/chat', authMiddleware, requireSubscription, checkUsageLimit('askQuestion'), sendChat);
+router.post('/chat', authMiddleware, checkUsageLimit('askQuestion'), sendChat);
 
 router.post('/knowledge', authMiddleware, upsertChatKnowledge);
 router.get('/knowledge', authMiddleware, getKnowledge);

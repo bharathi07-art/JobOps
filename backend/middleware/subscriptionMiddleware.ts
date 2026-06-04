@@ -74,7 +74,7 @@ export const requirePlan = (allowedPlans: string[]) => {
 /**
  * Middleware to check usage limits before action
  */
-export const checkUsageLimit = (actionType: 'aiSearch' | 'saveJob' | 'uploadResume' | 'askQuestion') => {
+export const checkUsageLimit = (actionType: 'aiSearch' | 'saveJob' | 'uploadResume' | 'askQuestion' | 'application') => {
   return async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
     try {
       if (!req.user || !req.user.id) {

@@ -1,4 +1,6 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef } from 'react';
+
+import { UpgradeBanner } from '../../utils/UpgradeBanner';
 import { motion, AnimatePresence } from 'framer-motion'
 import { Search, Filter, MapPin, Briefcase, Sparkles, TrendingUp, AlertCircle, ExternalLink, Bookmark, BookmarkCheck, X, CheckCircle2, Clock, BookmarkPlus } from 'lucide-react'
 import { Link, useNavigate } from 'react-router-dom'
@@ -6,6 +8,7 @@ import { DashboardLayout } from '../../components/layout/DashboardLayout'
 import { cn } from '../../utils/utils'
 import type { Application } from '../../types'
 import axios from 'axios'
+axios.defaults.withCredentials = true
 
 interface MatchedJob {
   title: string
@@ -32,21 +35,82 @@ export default function JobsPage() {
   const [search, setSearch] = useState('')
   const [categoryFilter, setCategoryFilter] = useState('All')
   const [aiResult, setAiResult] = useState<AIResult | null>(null)
-  const [savedKeys, setSavedKeys] = useState<Set<string>>(new Set())
+  const [loading, setLoading] = useState(true);
+const jobs = aiResult?.matched_jobs ?? [];
+  const [upgradeInfo, setUpgradeInfo] = useState<{ message: string; requiredPlans: string[]; upgradeUrl: string } | null>(null);
+  const [savedKeys, setSavedKeys] = useState<Set<string>>(new Set());
 
   useEffect(() => {
-    const stored = localStorage.getItem('aiResumeResult')
-    if (stored) {
-      try { setAiResult(JSON.parse(stored)) } catch { /* ignore */ }
-    }
-    // load already-saved job keys from localStorage for instant UI
-    const savedStored = localStorage.getItem('savedJobKeys')
-    if (savedStored) {
-      try { setSavedKeys(new Set(JSON.parse(savedStored))) } catch { /* ignore */ }
-    }
-  }, [])
+    let pollInterval: NodeJS.Timeout | null = null;
+    const fetchLatest = async () => {
+      try {
+        const { data } = await axios.get('/api/ai/matched-jobs');
+        if (data?.matched_jobs) {
+          setAiResult({ matched_jobs: data.matched_jobs });
+        }
+      } catch (err: any) {
+        if (err.response?.status === 403) {
+          setUpgradeInfo({
+            message: err.response?.data?.message || 'Upgrade required',
+            requiredPlans: err.response?.data?.requiredPlans || [],
+            upgradeUrl: err.response?.data?.upgradeUrl || '/dashboard/pricing',
+          });
+        }
+      }
+      setLoading(false);
+    };
 
-  const jobs = aiResult?.matched_jobs ?? []
+    // Initial fetch
+    fetchLatest();
+
+    // Poll every 5 seconds until we have at least one job
+    pollInterval = setInterval(() => {
+      if (!aiResult?.matched_jobs?.length) {
+        fetchLatest();
+      } else if (pollInterval) {
+        clearInterval(pollInterval);
+        pollInterval = null;
+      }
+    }, 5000);
+
+    // Refetch when tab becomes visible again
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible') {
+        fetchLatest();
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibility);
+
+    // Cleanup
+    return () => {
+      if (pollInterval) clearInterval(pollInterval);
+      document.removeEventListener('visibilitychange', handleVisibility);
+    };
+  }, []);
+
+  // Loading spinner for free-plan or data fetch
+  if (loading) {
+    return (
+      <DashboardLayout>
+        <div className="flex items-center justify-center min-h-[50vh]">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#FF4500]"></div>
+        </div>
+      </DashboardLayout>
+    );
+  }
+
+  // Upgrade prompt for free plan users
+  if (upgradeInfo) {
+    return (
+      <DashboardLayout>
+        <UpgradeBanner
+          message={upgradeInfo.message}
+          requiredPlans={upgradeInfo.requiredPlans}
+          upgradeUrl={upgradeInfo.upgradeUrl}
+        />
+      </DashboardLayout>
+    );
+  }
 
   const filtered = jobs.filter(job => {
     const matchesSearch =
