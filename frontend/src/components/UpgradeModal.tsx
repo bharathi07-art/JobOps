@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Zap, Check, ArrowRight } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { Button } from '../components/ui/Button';
 
 interface UpgradeModalProps {
@@ -30,6 +31,7 @@ export function UpgradeModal({
   featureName,
 }: UpgradeModalProps) {
   const [selectedPlan, setSelectedPlan] = useState<'monthly' | 'yearly'>('monthly');
+  const navigate = useNavigate();
   const [plans, setPlans] = useState<Plan[]>([]);
   const [loading, setLoading] = useState(false);
 
@@ -259,7 +261,7 @@ export function UpgradeModal({
                   Maybe Later
                 </Button>
                 <Button
-                  onClick={() => handleUpgrade('Monthly')}
+                  onClick={() => navigate('/dashboard/settings')}
                   variant="primary"
                   size="lg"
                   className="flex-1"

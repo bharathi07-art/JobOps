@@ -1,4 +1,5 @@
 import express from 'express';
+import axios from 'axios';
 import upload from '../middleware/uploadMiddleware';
 import { authMiddleware } from '../middleware/authMiddleware';
 import { checkUsageLimit } from '../middleware/subscriptionMiddleware';

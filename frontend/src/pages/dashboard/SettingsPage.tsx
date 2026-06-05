@@ -6,6 +6,9 @@ import { Card } from '../../components/ui/index'
 import { Input } from '../../components/ui/index'
 import { Button } from '../../components/ui/Button'
 import { cn } from '../../utils/utils'
+import { Link } from 'react-router-dom';
+import UsageBanner from '../../components/UsageBanner';
+import SearchUsageVisualizer from '../../components/SearchUsageVisualizer';
 
 // Read real user from localStorage — never fall back to mockUser
 function getStoredUser() {
@@ -457,12 +460,16 @@ export default function SettingsPage() {
 
           {activeTab === 'subscription' && (
             <Card className="p-6 space-y-6">
+              <UsageBanner />
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <div>
                   <h2 className="font-semibold text-gray-900">Subscription Plans</h2>
                   <p className="text-sm text-gray-500">Activate a plan to unlock premium AI features and faster job matching.</p>
                 </div>
-                <span className="text-sm text-gray-600">Current plan: <span className="font-semibold text-gray-900">{currentPlan}</span></span>
+                <div className="flex items-center gap-4 ml-auto">
+                  <span className="text-sm text-gray-600">Current plan: <span className="font-semibold text-gray-900">{currentPlan}</span></span>
+                  <Link to="/pricing" className="text-sm text-[#FF4500] hover:underline font-medium">View Pricing Details</Link>
+                </div>
               </div>
 
               <div className="grid gap-4 lg:grid-cols-3">
@@ -510,7 +517,8 @@ export default function SettingsPage() {
             <Card className="p-6 space-y-6">
               <div>
                 <h2 className="font-semibold text-gray-900">Email Automation</h2>
-                <p className="text-sm text-gray-500 mt-1">Configure automated AI job searches sent directly to your inbox.</p>
+                 <p className="text-sm text-gray-500 mt-1">Configure automated AI job searches sent directly to your inbox.</p>
+                 <SearchUsageVisualizer />
               </div>
 
               {!canEnableAutomation && (

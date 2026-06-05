@@ -149,6 +149,22 @@ export default function SubscriptionManagement() {
                     <PremiumBadge plan={subscription.subscriptionPlan} />
                   </div>
 
+                  {/* Price display */}
+                  <div className="mb-4 p-3 bg-orange-50 rounded-lg border border-orange-100">
+                    {subscription.subscriptionPlan === 'Monthly' && (
+                      <p className="text-lg font-bold text-gray-900">$25<span className="text-sm font-normal text-gray-500">/month</span></p>
+                    )}
+                    {subscription.subscriptionPlan === 'Yearly' && (
+                      <>
+                        <p className="text-lg font-bold text-gray-900">$250<span className="text-sm font-normal text-gray-500">/year</span></p>
+                        <p className="text-xs text-green-600 font-medium mt-0.5">Saving $50 annually (16.7% off vs monthly)</p>
+                      </>
+                    )}
+                    {subscription.subscriptionPlan === 'Free' && (
+                      <p className="text-lg font-bold text-gray-900">$0<span className="text-sm font-normal text-gray-500">/forever</span></p>
+                    )}
+                  </div>
+
                   <div className="space-y-4 text-sm">
                     <div className="flex items-center gap-3 text-gray-600">
                       <Calendar className="w-5 h-5 text-[#FF4500]" />

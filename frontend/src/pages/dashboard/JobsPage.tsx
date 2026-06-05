@@ -2,12 +2,13 @@ import { useState, useEffect, useRef } from 'react';
 
 import { UpgradeBanner } from '../../utils/UpgradeBanner';
 import { motion, AnimatePresence } from 'framer-motion'
-import { Search, Filter, MapPin, Briefcase, Sparkles, TrendingUp, AlertCircle, ExternalLink, Bookmark, BookmarkCheck, X, CheckCircle2, Clock, BookmarkPlus } from 'lucide-react'
-import { Link, useNavigate } from 'react-router-dom'
-import { DashboardLayout } from '../../components/layout/DashboardLayout'
-import { cn } from '../../utils/utils'
-import type { Application } from '../../types'
-import axios from 'axios'
+import { Search, Filter, MapPin, Briefcase, Sparkles, TrendingUp, AlertCircle, ExternalLink, Bookmark, BookmarkCheck, X, CheckCircle2, Clock, BookmarkPlus } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
+import { DashboardLayout } from '../../components/layout/DashboardLayout';
+import { cn } from '../../utils/utils';
+import { formatRelative, formatAbsolute } from '../../utils/timeUtils';
+import type { Application } from '../../types';
+import axios from 'axios';
 axios.defaults.withCredentials = true
 
 interface MatchedJob {
@@ -36,17 +37,36 @@ export default function JobsPage() {
   const [categoryFilter, setCategoryFilter] = useState('All')
   const [aiResult, setAiResult] = useState<AIResult | null>(null)
   const [loading, setLoading] = useState(true);
-const jobs = aiResult?.matched_jobs ?? [];
   const [upgradeInfo, setUpgradeInfo] = useState<{ message: string; requiredPlans: string[]; upgradeUrl: string } | null>(null);
   const [savedKeys, setSavedKeys] = useState<Set<string>>(new Set());
+  const [timestamp, setTimestamp] = useState<string | null>(null);
+  const [timestampMode, setTimestampMode] = useState<'relative' | 'absolute'>('relative');
+  const jobs = aiResult?.matched_jobs ?? [];
+
+  useEffect(() => {
+    const ts = localStorage.getItem('aiResumeTimestamp');
+    if (ts) setTimestamp(ts);
+    const saved = localStorage.getItem('savedJobKeys');
+    if (saved) setSavedKeys(new Set(JSON.parse(saved)));
+    const cached = localStorage.getItem('aiMatchedJobs');
+    if (cached) setAiResult({ matched_jobs: JSON.parse(cached) });
+    
+    const handler = (e: StorageEvent) => {
+      if (e.key === 'aiResumeTimestamp') setTimestamp(e.newValue);
+      if (e.key === 'aiMatchedJobs' && e.newValue) setAiResult({ matched_jobs: JSON.parse(e.newValue) });
+    };
+    window.addEventListener('storage', handler);
+    return () => window.removeEventListener('storage', handler);
+  }, []);
 
   useEffect(() => {
     let pollInterval: NodeJS.Timeout | null = null;
     const fetchLatest = async () => {
       try {
-        const { data } = await axios.get('/api/ai/matched-jobs');
+        const { data } = await axios.get('/api/jobresult/matched-jobs');
         if (data?.matched_jobs) {
           setAiResult({ matched_jobs: data.matched_jobs });
+          localStorage.setItem('aiMatchedJobs', JSON.stringify(data.matched_jobs));
         }
       } catch (err: any) {
         if (err.response?.status === 403) {
@@ -153,6 +173,11 @@ const jobs = aiResult?.matched_jobs ?? [];
                 ? `${filtered.length} of ${jobs.length} jobs matched to your resume`
                 : 'Upload your resume to see AI-matched jobs'}
             </p>
+          {timestamp && (
+            <p className="text-sm text-gray-500 cursor-pointer hover:text-[#FF4500]" onClick={() => setTimestampMode(prev => prev === 'relative' ? 'absolute' : 'relative')}>
+              Results last updated: {timestampMode === 'relative' ? formatRelative(timestamp) : formatAbsolute(timestamp)}
+            </p>
+          )}
           </div>
           {jobs.length > 0 && (
             <div className="flex gap-2 text-xs shrink-0">

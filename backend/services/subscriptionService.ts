@@ -35,7 +35,7 @@ export const SUBSCRIPTION_PLANS = {
   Monthly: {
     name: 'Monthly',
     monthlyPrice: 25,
-    YearlyPrice: 0,
+    YearlyPrice: 0, // N/A for monthly billing
     aiSearches: PRO_SEARCH_LIMIT, // Daily searches
     savedJobs: PRO_SAVED_JOBS_LIMIT, // unlimited
     resumeUploads: PRO_RESUME_UPLOAD_LIMIT, // unlimited
@@ -51,7 +51,7 @@ export const SUBSCRIPTION_PLANS = {
   Yearly: {
     name: 'Yearly',
     monthlyPrice: 0,
-    YearlyPrice: 210,
+    YearlyPrice: 250, // $25 × 12 = $300 - $250 = $50 saved (16.7%)
     aiSearches: PRO_SEARCH_LIMIT, // Daily searches
     savedJobs: PRO_SAVED_JOBS_LIMIT, // unlimited
     resumeUploads: PRO_RESUME_UPLOAD_LIMIT, // unlimited
@@ -203,6 +203,22 @@ export const getUserSubscription = async (userId: number) => {
 
     const counters = getPlanUsageCounters(user);
 
+    // Compute free plan weekly/monthly usage for UI
+    let weeklySearchesUsed = 0;
+    let monthlySearchesUsed = 0;
+    if (user.subscriptionPlan === 'Free') {
+      const now = new Date();
+      const startOfWeek = new Date(now);
+      startOfWeek.setDate(now.getDate() - now.getDay());
+      const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+      const [weeklyAgg, monthlyAgg] = await Promise.all([
+        prisma.usageTracking.aggregate({ where: { userId: user.id, date: { gte: startOfWeek } }, _sum: { aiSearchesUsed: true } }),
+        prisma.usageTracking.aggregate({ where: { userId: user.id, date: { gte: startOfMonth } }, _sum: { aiSearchesUsed: true } }),
+      ]);
+      weeklySearchesUsed = weeklyAgg._sum.aiSearchesUsed ?? 0;
+      monthlySearchesUsed = monthlyAgg._sum.aiSearchesUsed ?? 0;
+    }
+
     // Also provide remaining counters for UI usage indicators
     const remainingSavedJobs =
       user.maxSavedJobs === 0 ? 999 : Math.max(0, user.maxSavedJobs - user.savedJobsCount);
@@ -227,6 +243,11 @@ export const getUserSubscription = async (userId: number) => {
       lastResetDate: user.lastResetDate,
       remainingSavedJobs,
       remainingResumeUploads,
+      // New free plan usage metrics
+      weeklySearchesUsed,
+      monthlySearchesUsed,
+      weeklySearchesRemaining: Math.max(0, 2 - weeklySearchesUsed),
+      monthlySearchesRemaining: Math.max(0, 8 - monthlySearchesUsed),
     };
   } catch (error) {
     console.error('Error fetching user subscription:', error);
@@ -370,19 +391,21 @@ export const canPerformAction = async (
   actionType: 'aiSearch' | 'saveJob' | 'uploadResume' | 'askQuestion' | 'application'
 ): Promise<{ allowed: boolean; message?: string; remainingUsage?: number }> => {
   try {
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
-      select: {
-        subscriptionPlan: true,
-        aiSearchesUsed: true,
-        maxAISearches: true,
-        savedJobsCount: true,
-        maxSavedJobs: true,
-        resumeUploadsCount: true,
-        maxResumeUploads: true,
-        lastResetDate: true,
-      },
-    });
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: {
+      subscriptionPlan: true,
+      aiSearchesUsed: true,
+      maxAISearches: true,
+      savedJobsCount: true,
+      maxSavedJobs: true,
+      resumeUploadsCount: true,
+      maxResumeUploads: true,
+      lastResetDate: true,
+      // New fields for free plan usage
+      id: true,
+    },
+  });
 
     if (!user) {
       return { allowed: false, message: 'User not found' };
@@ -411,11 +434,30 @@ export const canPerformAction = async (
     switch (actionType) {
       case 'aiSearch': {
         const limit = user.subscriptionPlan === 'Free' ? FREE_SEARCH_LIMIT : user.maxAISearches || PRO_SEARCH_LIMIT;
+        if (user.subscriptionPlan === 'Free') {
+          const now = new Date();
+          const startOfWeek = new Date(now);
+          startOfWeek.setDate(now.getDate() - now.getDay());
+          const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+          const [weeklyCount, monthlyCount] = await Promise.all([
+            prisma.usageTracking.aggregate({ where: { userId, date: { gte: startOfWeek } }, _sum: { aiSearchesUsed: true } }),
+            prisma.usageTracking.aggregate({ where: { userId, date: { gte: startOfMonth } }, _sum: { aiSearchesUsed: true } }),
+          ]);
+          const weekUsed = weeklyCount._sum.aiSearchesUsed ?? 0;
+          const monthUsed = monthlyCount._sum.aiSearchesUsed ?? 0;
+          const canSearch = weekUsed < 2 && monthUsed < 8 && (limit === 0 || user.aiSearchesUsed < limit);
+          return {
+            allowed: canSearch,
+            message: canSearch ? undefined : 'Search limit reached (weekly/monthly)',
+            remainingUsage: canSearch ? undefined : 0,
+          };
+        }
+        // Pro plan: limit === 0 means unlimited
         const canSearch = limit === 0 || user.aiSearchesUsed < limit;
         return {
           allowed: canSearch,
           message: canSearch ? undefined : 'AI search limit reached',
-          remainingUsage: limit === 0 ? 0 : Math.max(0, limit - user.aiSearchesUsed),
+          remainingUsage: limit === 0 ? 9999 : Math.max(0, limit - user.aiSearchesUsed),
         };
       }
 
@@ -430,13 +472,18 @@ export const canPerformAction = async (
       }
 
       case 'uploadResume': {
-        const limit = user.subscriptionPlan === 'Free' ? FREE_RESUME_UPLOAD_LIMIT : user.maxResumeUploads || PRO_RESUME_UPLOAD_LIMIT;
-        const canUpload = limit === 0 || user.resumeUploadsCount < limit;
-        return {
-          allowed: canUpload,
-          message: canUpload ? undefined : 'Resume upload limit reached',
-          remainingUsage: limit === 0 ? 0 : Math.max(0, limit - user.resumeUploadsCount),
-        };
+        // For pro plans, maxResumeUploads=0 in DB means unlimited (set during upgrade)
+        // Free plan has a hard limit from config
+        if (user.subscriptionPlan === 'Free') {
+          const canUpload = user.resumeUploadsCount < FREE_RESUME_UPLOAD_LIMIT;
+          return {
+            allowed: canUpload,
+            message: canUpload ? undefined : 'Resume upload limit reached',
+            remainingUsage: Math.max(0, FREE_RESUME_UPLOAD_LIMIT - user.resumeUploadsCount),
+          };
+        }
+        // Pro plan — always allowed (unlimited)
+        return { allowed: true, remainingUsage: 9999 };
       }
 
       case 'askQuestion': {

@@ -94,7 +94,8 @@ const getFeaturesList = (planName: keyof typeof SUBSCRIPTION_PLANS): string[] =>
     ],
     Monthly: [
       ...baseFeatures,
-      'Unlimited AI searches (1 per day)',
+      '2 AI searches per day',
+      'Unlimited monthly usage',
       'Daily email notifications',
       'Unlimited saved jobs',
       'Unlimited resume uploads',
@@ -108,7 +109,8 @@ const getFeaturesList = (planName: keyof typeof SUBSCRIPTION_PLANS): string[] =>
     ],
     Yearly: [
       ...baseFeatures,
-      'Unlimited AI searches (1 per day)',
+      '2 AI searches per day',
+      'Unlimited yearly usage',
       'Daily email notifications',
       'Unlimited saved jobs',
       'Unlimited resume uploads',
@@ -121,8 +123,7 @@ const getFeaturesList = (planName: keyof typeof SUBSCRIPTION_PLANS): string[] =>
       'Application insights',
       'Early access features',
       'Personalized AI career roadmap',
-      'Enhanced recommendations',
-      'Future premium integrations',
+      'Save $50 annually (16.7% off)',
     ],
   };
 

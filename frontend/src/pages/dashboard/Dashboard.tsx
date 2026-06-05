@@ -8,6 +8,7 @@ import { weeklyActivity } from '../../data/mockData'
 import { useSubscription } from '../../contexts/SubscriptionContext'
 import SetPasswordModal from '../../components/SetPasswordModal'
 import UsageBanner from '../../components/UsageBanner'
+import SearchUsageVisualizer from '../../components/SearchUsageVisualizer'
 
 interface MatchedJob {
   title: string
@@ -249,6 +250,7 @@ export default function Dashboard() {
                 <div className="flex items-center gap-1.5"><div className="w-3 h-3 bg-[#FF4500] rounded-sm" /><span className="text-xs text-gray-500">Applications</span></div>
                 <div className="flex items-center gap-1.5"><div className="w-3 h-3 bg-orange-100 rounded-sm" /><span className="text-xs text-gray-500">Matches</span></div>
               </div>
+              <SearchUsageVisualizer />
             </Card>
           </motion.div>
 

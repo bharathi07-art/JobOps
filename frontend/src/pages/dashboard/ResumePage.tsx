@@ -63,15 +63,18 @@ export default function ResumePage() {
     }, 3000)
   }
 
-  const { isPremium } = useSubscription()
+  const { isPremium, subscription } = useSubscription()
   const {
     showUpgradeModal,
     checkAndPromptUpgrade,
   } = useUpgradePrompt({ featureName: 'Resume Analysis' })
 
   const analyzeFile = useCallback(async (file: File) => {
-    // Gate resume analysis for non-premium users
-    if (!isPremium) {
+    // Only hard-block if we are certain the user is on Free AND the upgrade check fails
+    // isPremium may still be false while the subscription context is loading, so
+    // we skip the gate when subscription hasn't resolved yet (isPremium === false but
+    // subscription object is null means still loading).
+    if (!isPremium && subscription !== null) {
       const allowed = checkAndPromptUpgrade('uploadResume')
       if (!allowed) return
     }
@@ -142,6 +145,8 @@ export default function ResumePage() {
 
         setAiResult(parsed)
         localStorage.setItem('aiResumeResult', JSON.stringify(parsed))
+        // Store timestamp of when the AI analysis completed
+        localStorage.setItem('aiResumeTimestamp', new Date().toISOString())
         setStage('done')
       } else {
         console.error('Backend returned success:false', res.data)

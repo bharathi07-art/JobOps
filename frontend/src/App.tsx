@@ -4,7 +4,8 @@ import Login from './componenets/Login'
 import Register from './componenets/Register'
 import ForgotPassword from './componenets/ForgotPassword'
 import VerifyOTP from './componenets/VerifyOTP'
-import Dashboard from './pages/dashboard/Dashboard'
+import Dashboard from './pages/dashboard/Dashboard';
+import PricingPage from './pages/PricingPage';
 import ResumePage from './pages/dashboard/ResumePage'
 import { SubscriptionProvider } from './contexts/SubscriptionContext'
 import { useSubscription } from './contexts/SubscriptionContext'
@@ -83,6 +84,7 @@ function App() {
           <Route path="/dashboard/analytics" element={<RequireAuth><AnalyticsPage /></RequireAuth>} />
           <Route path="/dashboard/feedback" element={<RequireAuth><FeedbackPage /></RequireAuth>} />
           <Route path="/dashboard/settings" element={<RequireAuth><SettingsPage /></RequireAuth>} />
+          <Route path="/pricing" element={<PricingPage />} />
           <Route path="/dashboard/help" element={<RequireAuth><HelpCenterPage /></RequireAuth>} />
           {/* Admin */}
           <Route path="/admin" element={<AdminRequireAuth><AdminOverview /></AdminRequireAuth>} />

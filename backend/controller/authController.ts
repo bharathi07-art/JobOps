@@ -42,6 +42,7 @@ export const register = async (req:Request, res:Response):Promise<void>=>{
                 name: username,
                 email: email,
                 password: hashPassword,
+                avatar: "",
             }
         });
 
@@ -65,6 +66,7 @@ export const register = async (req:Request, res:Response):Promise<void>=>{
                 name: user.name,
                 email: user.email,
                 plan: sub.subscriptionPlan,
+                avatar: user.avatar,
               }
         });
     }
@@ -127,6 +129,7 @@ export const login = async (req: Request, res: Response): Promise<Response> => {
         name: user.name,
         email: user.email,
         plan: sub.subscriptionPlan,
+        avatar: user.avatar,
       }
     });
 
@@ -146,7 +149,7 @@ export const getProfile = async (req: Request, res: Response): Promise<Response>
 
     const user = await prisma.user.findUnique({
       where: { id: Number(userId) },
-      select: { id: true, name: true, email: true, plan: true, isAdmin: true }
+      select: { id: true, name: true, email: true, plan: true, isAdmin: true, avatar: true }
     })
 
     if (!user) {
@@ -154,7 +157,7 @@ export const getProfile = async (req: Request, res: Response): Promise<Response>
     }
 
     const sub = await getUserSubscription(user.id);
-    user.plan = sub.subscriptionPlan; // override with canonical plan
+    (user as any).plan = sub.subscriptionPlan; // override with canonical plan
 
     return res.status(200).json({ success: true, user })
   } catch (err: any) {

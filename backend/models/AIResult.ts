@@ -7,6 +7,8 @@ const MatchedJobSchema = new mongoose.Schema({
   match_percentage: Number,
   category: { type: String, enum: ['high', 'medium', 'low'] },
   career_url: String,
+  job_url: String,
+  search_url: String,
 });
 
 const AIResultSchema = new mongoose.Schema({
