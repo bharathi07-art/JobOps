@@ -17,6 +17,7 @@ import adminRoutes from "./routes/adminRoutes";
 import feedbackRoutes from "./routes/feedbackRoutes";
 import subscriptionRoutes from "./routes/subscriptionRoutes";
 import emailAutomationRoutes from "./routes/emailAutomationRoutes";
+import logoutRoute from "./routes/logoutRoute";
 import { startEmailAutomationScheduler } from "./scheduler/emailAutomationScheduler";
 
 const app = express();
@@ -52,7 +53,7 @@ app.use("/api/ai", chatRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/feedback", feedbackRoutes);
 app.use("/api/subscription", subscriptionRoutes);
-app.use("/api/email-automation", emailAutomationRoutes);
+app.use('/logout', logoutRoute);
 
 
 const port: number = Number(process.env.PORT) || 5000;

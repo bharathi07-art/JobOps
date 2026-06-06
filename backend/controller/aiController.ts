@@ -1,5 +1,6 @@
 import { Request, Response } from "express";
-import { PDFParse } from "pdf-parse";
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const { PDFParse } = require('pdf-parse');
 import mammoth from "mammoth";
 import axios from "axios";
 import AIResultModel from "../models/AIResult";
@@ -29,8 +30,8 @@ export const analyzeResume = async (req: Request, res: Response) => {
 
     if (file.mimetype === "application/pdf") {
       const parser = new PDFParse({ data: file.buffer });
-      const parsed = await parser.getText();
-      resumeText = parsed.text;
+      const result = await parser.getText();
+      resumeText = result.text;
     }
 
     if (file.mimetype === "application/vnd.openxmlformats-officedocument.wordprocessingml.document") {

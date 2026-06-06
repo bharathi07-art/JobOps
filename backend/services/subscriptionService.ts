@@ -1,6 +1,8 @@
 import { PrismaClient } from '@prisma/client';
 import {
   FREE_SEARCH_LIMIT,
+  FREE_WEEKLY_SEARCH_LIMIT,
+  PRO_DAILY_SEARCH_LIMIT,
   PRO_SEARCH_LIMIT,
   FREE_ASSISTANT_LIMIT,
   PRO_ASSISTANT_LIMIT,
@@ -203,21 +205,26 @@ export const getUserSubscription = async (userId: number) => {
 
     const counters = getPlanUsageCounters(user);
 
-    // Compute free plan weekly/monthly usage for UI
-    let weeklySearchesUsed = 0;
-    let monthlySearchesUsed = 0;
-    if (user.subscriptionPlan === 'Free') {
-      const now = new Date();
-      const startOfWeek = new Date(now);
-      startOfWeek.setDate(now.getDate() - now.getDay());
-      const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-      const [weeklyAgg, monthlyAgg] = await Promise.all([
-        prisma.usageTracking.aggregate({ where: { userId: user.id, date: { gte: startOfWeek } }, _sum: { aiSearchesUsed: true } }),
-        prisma.usageTracking.aggregate({ where: { userId: user.id, date: { gte: startOfMonth } }, _sum: { aiSearchesUsed: true } }),
-      ]);
-      weeklySearchesUsed = weeklyAgg._sum.aiSearchesUsed ?? 0;
-      monthlySearchesUsed = monthlyAgg._sum.aiSearchesUsed ?? 0;
-    }
+    // Compute usage metrics from usageTracking table
+    const now = new Date();
+    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate()); // midnight local
+    const startOfWeek = new Date(now);
+    // ISO week: Monday as start
+    const dayOfWeek = now.getDay(); // 0=Sun
+    const diffToMonday = (dayOfWeek + 6) % 7;
+    startOfWeek.setDate(now.getDate() - diffToMonday);
+    startOfWeek.setHours(0, 0, 0, 0);
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+
+    const [dailyAgg, weeklyAgg, monthlyAgg] = await Promise.all([
+      prisma.usageTracking.aggregate({ where: { userId: user.id, date: { gte: startOfToday } }, _sum: { aiSearchesUsed: true } }),
+      prisma.usageTracking.aggregate({ where: { userId: user.id, date: { gte: startOfWeek } }, _sum: { aiSearchesUsed: true } }),
+      prisma.usageTracking.aggregate({ where: { userId: user.id, date: { gte: startOfMonth } }, _sum: { aiSearchesUsed: true } }),
+    ]);
+
+    const dailySearchesUsed   = dailyAgg._sum.aiSearchesUsed ?? 0;
+    const weeklySearchesUsed  = weeklyAgg._sum.aiSearchesUsed ?? 0;
+    const monthlySearchesUsed = monthlyAgg._sum.aiSearchesUsed ?? 0;
 
     // Also provide remaining counters for UI usage indicators
     const remainingSavedJobs =
@@ -243,11 +250,13 @@ export const getUserSubscription = async (userId: number) => {
       lastResetDate: user.lastResetDate,
       remainingSavedJobs,
       remainingResumeUploads,
-      // New free plan usage metrics
+      // New usage metrics (all plans)
+      dailySearchesUsed,
       weeklySearchesUsed,
       monthlySearchesUsed,
-      weeklySearchesRemaining: Math.max(0, 2 - weeklySearchesUsed),
-      monthlySearchesRemaining: Math.max(0, 8 - monthlySearchesUsed),
+      weeklySearchesRemaining:  Math.max(0, FREE_WEEKLY_SEARCH_LIMIT - weeklySearchesUsed),
+      monthlySearchesRemaining: Math.max(0, FREE_SEARCH_LIMIT - monthlySearchesUsed),
+      dailySearchesRemaining:   Math.max(0, PRO_DAILY_SEARCH_LIMIT - dailySearchesUsed),
     };
   } catch (error) {
     console.error('Error fetching user subscription:', error);
@@ -433,31 +442,43 @@ export const canPerformAction = async (
 
     switch (actionType) {
       case 'aiSearch': {
-        const limit = user.subscriptionPlan === 'Free' ? FREE_SEARCH_LIMIT : user.maxAISearches || PRO_SEARCH_LIMIT;
+        const now = new Date();
         if (user.subscriptionPlan === 'Free') {
-          const now = new Date();
+          // Free: 2/week AND 8/month
           const startOfWeek = new Date(now);
-          startOfWeek.setDate(now.getDate() - now.getDay());
+          const diffToMonday = (now.getDay() + 6) % 7;
+          startOfWeek.setDate(now.getDate() - diffToMonday);
+          startOfWeek.setHours(0, 0, 0, 0);
           const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
           const [weeklyCount, monthlyCount] = await Promise.all([
             prisma.usageTracking.aggregate({ where: { userId, date: { gte: startOfWeek } }, _sum: { aiSearchesUsed: true } }),
             prisma.usageTracking.aggregate({ where: { userId, date: { gte: startOfMonth } }, _sum: { aiSearchesUsed: true } }),
           ]);
-          const weekUsed = weeklyCount._sum.aiSearchesUsed ?? 0;
+          const weekUsed  = weeklyCount._sum.aiSearchesUsed ?? 0;
           const monthUsed = monthlyCount._sum.aiSearchesUsed ?? 0;
-          const canSearch = weekUsed < 2 && monthUsed < 8 && (limit === 0 || user.aiSearchesUsed < limit);
+          const weekOk    = weekUsed < FREE_WEEKLY_SEARCH_LIMIT;
+          const monthOk   = monthUsed < FREE_SEARCH_LIMIT;
+          const canSearch = weekOk && monthOk;
           return {
             allowed: canSearch,
-            message: canSearch ? undefined : 'Search limit reached (weekly/monthly)',
-            remainingUsage: canSearch ? undefined : 0,
+            message: canSearch ? undefined
+              : !weekOk ? `Weekly limit reached (${FREE_WEEKLY_SEARCH_LIMIT}/week)`
+              : `Monthly limit reached (${FREE_SEARCH_LIMIT}/month)`,
+            remainingUsage: canSearch ? Math.min(FREE_WEEKLY_SEARCH_LIMIT - weekUsed, FREE_SEARCH_LIMIT - monthUsed) : 0,
           };
         }
-        // Pro plan: limit === 0 means unlimited
-        const canSearch = limit === 0 || user.aiSearchesUsed < limit;
+        // Pro plan (Monthly/Yearly): 2 searches per day — resets at midnight
+        const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        const dailyCount = await prisma.usageTracking.aggregate({
+          where: { userId, date: { gte: startOfToday } },
+          _sum: { aiSearchesUsed: true },
+        });
+        const dayUsed = dailyCount._sum.aiSearchesUsed ?? 0;
+        const canSearch = dayUsed < PRO_DAILY_SEARCH_LIMIT;
         return {
           allowed: canSearch,
-          message: canSearch ? undefined : 'AI search limit reached',
-          remainingUsage: limit === 0 ? 9999 : Math.max(0, limit - user.aiSearchesUsed),
+          message: canSearch ? undefined : `Daily limit reached (${PRO_DAILY_SEARCH_LIMIT}/day). Resets at midnight.`,
+          remainingUsage: Math.max(0, PRO_DAILY_SEARCH_LIMIT - dayUsed),
         };
       }
 

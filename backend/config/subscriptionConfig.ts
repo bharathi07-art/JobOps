@@ -1,4 +1,6 @@
-export const FREE_SEARCH_LIMIT = 4;
+export const FREE_SEARCH_LIMIT = 8;        // 8 per month
+export const FREE_WEEKLY_SEARCH_LIMIT = 2;  // 2 per week
+export const PRO_DAILY_SEARCH_LIMIT = 2;    // 2 per day (resets at midnight user local time)
 export const PRO_SEARCH_LIMIT = 100;
 
 export const FREE_ASSISTANT_LIMIT = 20;

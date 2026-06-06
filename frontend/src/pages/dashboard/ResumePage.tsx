@@ -63,7 +63,7 @@ export default function ResumePage() {
     }, 3000)
   }
 
-  const { isPremium, subscription } = useSubscription()
+  const { isPremium, subscription, refreshSubscription } = useSubscription()
   const {
     showUpgradeModal,
     checkAndPromptUpgrade,
@@ -145,8 +145,9 @@ export default function ResumePage() {
 
         setAiResult(parsed)
         localStorage.setItem('aiResumeResult', JSON.stringify(parsed))
-        // Store timestamp of when the AI analysis completed
         localStorage.setItem('aiResumeTimestamp', new Date().toISOString())
+        // Refresh subscription so usage counters update from DB
+        refreshSubscription().catch(() => {})
         setStage('done')
       } else {
         console.error('Backend returned success:false', res.data)

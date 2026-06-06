@@ -23,6 +23,13 @@ interface Subscription {
   applicationsCount?: number;
   maxAssistantQuestions?: number;
   assistantQuestionsCount?: number;
+  // Usage metrics from DB (all plans)
+  dailySearchesUsed?: number;
+  weeklySearchesUsed?: number;
+  monthlySearchesUsed?: number;
+  dailySearchesRemaining?: number;
+  weeklySearchesRemaining?: number;
+  monthlySearchesRemaining?: number;
 }
 
 

@@ -6,23 +6,45 @@ const router = Router();
 router.get('/logout', (req: Request, res: Response) => {
   // If using passport, logout the user
   if (typeof req.logout === 'function') {
-    req.logout();
+    req.logout((err: any) => {
+      if (err) {
+        console.error('Passport logout error:', err);
+        // Still proceed with session destruction below
+      }
+
+      // Destroy session if exists
+      if (req.session) {
+        req.session.destroy((destroyErr) => {
+          if (destroyErr) {
+            console.error('Session destruction error:', destroyErr);
+            return res.status(500).json({ message: 'Logout failed' });
+          }
+
+          res.clearCookie('connect.sid');
+          return res.json({ message: 'Logged out successfully' });
+        });
+      } else {
+        res.clearCookie('connect.sid');
+        return res.json({ message: 'Logged out successfully' });
+      }
+    });
+    return;
   }
 
-  // Destroy session if exists
+  // No passport logout available - destroy session anyway
   if (req.session) {
-    req.session.destroy(err => {
+    req.session.destroy((err) => {
       if (err) {
         console.error('Session destruction error:', err);
         return res.status(500).json({ message: 'Logout failed' });
       }
-      // Clear cookie (default name for express-session)
       res.clearCookie('connect.sid');
       return res.json({ message: 'Logged out successfully' });
     });
   } else {
-    return res.json({ message: 'Logged out successfully' });
+    res.json({ message: 'Logged out successfully' });
   }
 });
 
 export default router;
+

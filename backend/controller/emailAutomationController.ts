@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import prisma from '../config/prisma';
-import { PDFParse } from 'pdf-parse';
+import pdfParse from 'pdf-parse';
 import mammoth from 'mammoth';
 
 const getUserId = (req: Request): number | null => {
@@ -161,8 +161,7 @@ export const uploadAutomationResume = async (req: Request, res: Response) => {
     let resumeText = '';
 
     if (file.mimetype === 'application/pdf') {
-      const parser = new PDFParse({ data: file.buffer });
-      const parsed = await parser.getText();
+      const parsed = await pdfParse(file.buffer);
       resumeText = parsed.text;
     } else if (file.mimetype === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
       const parsed = await mammoth.extractRawText({ buffer: file.buffer });
