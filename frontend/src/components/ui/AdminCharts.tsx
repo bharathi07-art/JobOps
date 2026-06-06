@@ -109,6 +109,22 @@ export function DonutChart({ data, size = 120 }: {
   data: { label: string; value: number; color: string }[]; size?: number
 }) {
   const total = data.reduce((a, b) => a + b.value, 0)
+
+  // Guard: no data or all zeros — show empty state
+  if (!data.length || total === 0) {
+    return (
+      <div className="flex items-center gap-6">
+        <svg viewBox="0 0 100 100" style={{ width: size, height: size }} className="shrink-0">
+          <circle cx="50" cy="50" r="40" fill="none" stroke="#f3f4f6" strokeWidth="18" />
+          <circle cx="50" cy="50" r="28" fill="white" />
+          <text x="50" y="46" textAnchor="middle" fontSize="8" fill="#94a3b8">No</text>
+          <text x="50" y="57" textAnchor="middle" fontSize="8" fill="#94a3b8">data</text>
+        </svg>
+        <p className="text-xs text-gray-400">No subscription data yet</p>
+      </div>
+    )
+  }
+
   let offset = 0
   const r = 40; const cx = 50; const cy = 50
   const circ = 2 * Math.PI * r

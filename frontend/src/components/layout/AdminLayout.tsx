@@ -85,9 +85,9 @@ function AdminSidebar({ open, onClose }: { open: boolean; onClose: () => void })
               <p className="text-[10px] text-white/40">Full access</p>
             </div>
           </div>
-          <Link to="/dashboard"
+          <Link to="/logout"
             className="flex items-center gap-2 px-3 py-2 mt-2 rounded-xl text-xs text-white/40 hover:text-white hover:bg-white/5 transition-colors">
-            <LogOut className="w-3.5 h-3.5" /> Back to Dashboard
+            <LogOut className="w-3.5 h-3.5" /> Logout
           </Link>
         </div>
       </aside>

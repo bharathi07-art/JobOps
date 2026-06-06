@@ -38,30 +38,53 @@ export default function AdminOverview() {
   const [monthlyRevenue, setMonthlyRevenue] = useState<any[]>([])
   const [subscriptionPieData, setSubscriptionPieData] = useState<any[]>([])
   const [recentActivity, setRecentActivity] = useState<any[]>([])
+  const [loading, setLoading] = useState<boolean>(true)
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     async function load() {
       try {
-        const token = (() => { try { return JSON.parse(localStorage.getItem('userInfo')||'null')?.token } catch { return null } })()
-        const headers = token ? { Authorization: `Bearer ${token}` } : {}
-        const [ovRes, logsRes, subsRes] = await Promise.all([
+        const token = (() => { try { return JSON.parse(localStorage.getItem('userInfo')||'null')?.token } catch { return null } })();
+        const headers = token ? { Authorization: `Bearer ${token}` } : {};
+        const [ovRes, logsRes] = await Promise.all([
           axios.get('/api/admin/overview', { headers }),
           axios.get('/api/admin/logs', { headers }),
-          axios.get('/api/admin/subscriptions', { headers }),
-        ])
+        ]);
 
-        setStats(ovRes.data.overview)
-        // map ai usage into weeklyVisits & aiUsage shape if available
-        setWeeklyVisits([])
-        setMonthlyRevenue([])
-        setSubscriptionPieData(subsRes.data.subscriptions || [])
-        setRecentActivity((logsRes.data.logs || []).slice(0, 20).map((l: any) => ({ id: l._id, user: l.userId, action: l.detail, time: new Date(l.createdAt).toLocaleString(), type: 'ai' })))
+        setStats(ovRes.data.overview);
+        setWeeklyVisits(ovRes.data.weeklyVisits || []);
+        setMonthlyRevenue(ovRes.data.monthlyRevenue || []);
+        setSubscriptionPieData(ovRes.data.subscriptionPieData || []);
+        setRecentActivity((logsRes.data.logs || []).slice(0, 20).map((l: any) => ({ id: l._id, user: l.userId, action: l.detail, time: new Date(l.createdAt).toLocaleString(), type: l.type || 'login' })));
+        setLoading(false);
       } catch (err) {
-        console.error('Failed to load admin overview', err)
+        console.error('Failed to load admin overview', err);
+        setError('Failed to load admin overview');
+        setLoading(false);
       }
     }
-    load()
+    load();
   }, [])
+
+  if (loading) {
+    return (
+      <AdminLayout>
+        <div className="flex items-center justify-center min-h-[60vh]">
+          <div className="w-10 h-10 border-4 border-[#FF4500] border-t-transparent rounded-full animate-spin" />
+        </div>
+      </AdminLayout>
+    );
+  }
+
+  if (error) {
+    return (
+      <AdminLayout>
+        <div className="flex items-center justify-center min-h-[60vh]">
+          <p className="text-red-500 text-sm">{error}</p>
+        </div>
+      </AdminLayout>
+    );
+  }
 
   return (
     <AdminLayout>

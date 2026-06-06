@@ -37,10 +37,20 @@ function parseUserInfo() {
   }
 }
 
-// ── User dashboard guard — waits for subscription context to resolve ───────────
+// ── Admin guard ───────────────────────────────────────────────────────────────
+function AdminRequireAuth({ children }: { children: React.ReactNode }) {
+  const userInfo = parseUserInfo()
+  if (!userInfo) return <Navigate to="/login" replace />
+  if (!userInfo.isAdmin) return <Navigate to="/login" replace />
+  return <>{children}</>
+}
+
+// ── User guard — blocks admin from accessing user dashboard ───────────────────
 function RequireAuth({ children }: { children: React.ReactNode }) {
   const { loading } = useSubscription()
   const userInfo = parseUserInfo()
+
+  if (userInfo?.isAdmin) return <Navigate to="/admin" replace />
 
   if (loading) {
     return (
@@ -51,16 +61,6 @@ function RequireAuth({ children }: { children: React.ReactNode }) {
   }
 
   if (!userInfo) return <Navigate to="/login" replace />
-  return <>{children}</>
-}
-
-// ── Admin guard — purely synchronous, zero subscription dependency ─────────────
-// Admin users don't have subscriptions so we must NEVER block on loading state.
-// This is a plain synchronous localStorage check — no hooks that touch subscription.
-function AdminRequireAuth({ children }: { children: React.ReactNode }) {
-  const userInfo = parseUserInfo()
-  if (!userInfo) return <Navigate to="/login" replace />
-  if (!userInfo.isAdmin) return <Navigate to="/login" replace />
   return <>{children}</>
 }
 

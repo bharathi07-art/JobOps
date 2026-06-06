@@ -27,11 +27,10 @@ export default function Login() {
       const data = await res.json();
       if(res.ok){
         localStorage.setItem("userInfo", JSON.stringify(data));
-        // refresh subscription state immediately so gated UI updates
-        try { await refreshSubscription() } catch(e) { /* ignore */ }
         if(data.isAdmin){
-          navigate('/admin')
+          navigate('/admin/overview')
         }else{
+          try { await refreshSubscription() } catch(e) { /* ignore */ }
           navigate('/dashboard');
         }
       }

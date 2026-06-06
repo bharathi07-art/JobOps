@@ -3,6 +3,7 @@ import transporter from '../utils/sendEmail';
 import AIResultModel from '../models/AIResult';
 import axios from 'axios';
 import jwt from 'jsonwebtoken';
+import { canPerformAction } from '../services/subscriptionService';
 const pad2 = (n: number) => String(n).padStart(2, '0');
 
 const getNowHHmm = () => {
@@ -188,15 +189,25 @@ export const startEmailAutomationScheduler = () => {
           { expiresIn: '7d' }
         );
         const autoLoginUrl = `${frontendUrl}/dashboard?token=${encodeURIComponent(emailToken)}&id=${user.id}&plan=${encodeURIComponent(user.subscriptionPlan)}&email=${encodeURIComponent(user.email)}`;
+        // Check if user can perform AI search (usage limit)
+        const { allowed, message } = await canPerformAction(user.id, 'aiSearch');
+        if (!allowed) {
+          console.log(`Skipping email for user ${user.id}: ${message}`);
+          continue;
+        }
 
         const html = renderEmailBody(jobs, autoLoginUrl);
 
+        // Send email and increment usage
         await transporter.sendMail({
           from: process.env.EMAIL_USER,
           to: user.email,
           subject: 'JobOps Automated Job Matches',
           html,
         });
+        // Increment AI search usage for automation
+        await import('../services/subscriptionService').then(m => m.incrementUsage(user.id, 'aiSearchesUsed'));
+
       }
     } catch (err) {
       console.error('Email automation scheduler error:', err);

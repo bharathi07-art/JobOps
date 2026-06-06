@@ -80,13 +80,8 @@ export default function Dashboard() {
         }
       }
       localStorage.setItem('userInfo', JSON.stringify(userInfo))
-      // Clean up URL so params don't persist on refresh
       window.history.replaceState({}, document.title, window.location.pathname)
 
-      if (isAdmin === 'true') {
-        navigate('/admin')
-        return
-      }
 
       // New OAuth user with no password yet — show the set-password modal
       if (hasPassword === 'false') {
