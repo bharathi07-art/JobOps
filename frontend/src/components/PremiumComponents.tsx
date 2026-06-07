@@ -1,9 +1,9 @@
 
 import { motion } from 'framer-motion';
-import { Crown, Zap, Lock } from 'lucide-react';
+import { Crown, Lock } from 'lucide-react';
 import { useUpgradePrompt } from '../hooks/useUpgradePrompt';
 import { UpgradeModal } from './UpgradeModal';
-import { Button } from './ui/Button';
+import { Button } from '../ui';
 
 interface PremiumBadgeProps {
   plan: string;
@@ -158,7 +158,7 @@ export function LockedFeatureIndicator({
   featureName: string;
   requiredPlan?: string;
 }) {
-  const { isUpgradeModalOpen, upgradeInfo, showUpgradeModal, closeUpgradeModal } = useUpgradePrompt({ featureName });
+  const { showUpgradeModal } = useUpgradePrompt({ featureName });
 
   return (
     <>

@@ -1,13 +1,208 @@
-model WeeklyVisit {
-  id      Int    @id @default(autoincrement())
-  day     String // e.g., "Mon"
-  users   Int
-  sessions Int
+generator client {
+  provider = "prisma-client-js"
 }
 
-model MonthlyRevenue {
-  id            Int    @id @default(autoincrement())
-  month         String // e.g., "Jan"
-  revenue       Int
-  subscriptions Int
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model accountrecoveryrequest {
+  id                   Int       @id @default(autoincrement())
+  userId               Int
+  email                String
+  reasonForDeletion    String?   @db.Text
+  reasonForRecovery    String?   @db.Text
+  status               String    @default("Pending")
+  deletedDate          DateTime
+  recoveryRequestDate  DateTime  @default(now())
+  recoveryDeadlineDate DateTime
+  reviewedBy           Int?
+  reviewedAt           DateTime?
+  cooldownEndDate      DateTime
+  createdAt            DateTime  @default(now())
+}
+
+model adminnotification {
+  id               Int      @id @default(autoincrement())
+  title            String
+  message          String   @db.Text
+  type             String   @default("info")
+  relatedUserId    Int?
+  relatedRequestId Int?
+  isRead           Boolean  @default(false)
+  createdAt        DateTime @default(now())
+}
+
+model feedback {
+  id        Int      @id @default(autoincrement())
+  subject   String
+  message   String
+  type      String
+  status    String   @default("Pending")
+  priority  String   @default("Medium")
+  reply     String?
+  createdAt DateTime @default(now())
+  userId    Int
+  user      user     @relation(fields: [userId], references: [id], map: "Feedback_userId_fkey")
+
+  @@index([userId], map: "Feedback_userId_fkey")
+}
+
+model otp {
+  id        Int      @id @default(autoincrement())
+  email     String
+  otp       String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  userId    Int?
+  user      user?    @relation(fields: [userId], references: [id], map: "OTP_userId_fkey")
+
+  @@index([userId], map: "OTP_userId_fkey")
+}
+
+model plansubscription {
+  id                 Int      @id @default(autoincrement())
+  planName           String
+  monthlyPrice       Float    @default(0)
+  yearlyPrice        Float    @default(0)
+  features           String
+  aiSearches         Int      @default(0)
+  savedJobs          Int      @default(0)
+  resumeUploads      Int      @default(0)
+  emailNotifications Boolean  @default(false)
+  prioritySupport    Boolean  @default(false)
+  advancedAnalytics  Boolean  @default(false)
+  atsScoring         Boolean  @default(false)
+  skillGapAnalysis   Boolean  @default(false)
+  careerRoadmap      Boolean  @default(false)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime
+  user               user[]   @relation("plansubscriptiontouser")
+}
+
+model profile {
+  id       Int     @id @default(autoincrement())
+  bio      String?
+  skills   String?
+  location String?
+  userId   Int     @unique(map: "Profile_userId_key")
+  user     user    @relation(fields: [userId], references: [id], map: "Profile_userId_fkey")
+}
+
+model resume {
+  id        Int      @id @default(autoincrement())
+  fileURL   String
+  uploadeAt DateTime @default(now())
+  userId    Int
+  user      user     @relation(fields: [userId], references: [id], map: "Resume_userId_fkey")
+
+  @@index([userId], map: "Resume_userId_fkey")
+}
+
+model savedjob {
+  id        Int      @id @default(autoincrement())
+  title     String
+  company   String
+  location  String
+  applyLink String?
+  savedAt   DateTime @default(now())
+  userId    Int
+  user      user     @relation(fields: [userId], references: [id], map: "SavedJob_userId_fkey")
+
+  @@index([userId], map: "SavedJob_userId_fkey")
+}
+
+model subscriptionhistory {
+  id              Int       @id @default(autoincrement())
+  userId          Int
+  planName        String
+  action          String
+  previousPlan    String?
+  newPlan         String?
+  amount          Float?
+  currency        String    @default("USD")
+  paymentProvider String?
+  paymentId       String?
+  status          String    @default("pending")
+  transactionId   String?   @unique(map: "SubscriptionHistory_transactionId_key")
+  startDate       DateTime?
+  endDate         DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime
+  user            user      @relation(fields: [userId], references: [id], onDelete: Cascade, map: "SubscriptionHistory_userId_fkey")
+
+  @@index([userId], map: "SubscriptionHistory_userId_fkey")
+}
+
+model usagetracking {
+  id               Int      @id @default(autoincrement())
+  userId           Int
+  date             DateTime @default(now())
+  aiSearchesUsed   Int      @default(0)
+  jobsSaved        Int      @default(0)
+  resumesUploaded  Int      @default(0)
+  aiQuestionsAsked Int      @default(0)
+  createdAt        DateTime @default(now())
+  user             user     @relation(fields: [userId], references: [id], onDelete: Cascade, map: "UsageTracking_userId_fkey")
+
+  @@unique([userId, date], map: "UsageTracking_userId_date_key")
+}
+
+model user {
+  id                        Int                   @id @default(autoincrement())
+  name                      String
+  email                     String                @unique(map: "User_email_key")
+  password                  String
+  plan                      String                @default("Free")
+  createdAt                 DateTime              @default(now())
+  isAdmin                   Boolean               @default(false)
+  githubID                  String?               @unique(map: "User_githubID_key")
+  googleID                  String?               @unique(map: "User_googleID_key")
+  avatar                    String?
+  aiSearchesUsed            Int                   @default(0)
+  autoRenew                 Boolean               @default(true)
+  billingCycle              String?
+  lastResetDate             DateTime              @default(now())
+  maxAISearches             Int                   @default(4)
+  maxResumeUploads          Int                   @default(1)
+  maxSavedJobs              Int                   @default(10)
+  paymentProvider           String?
+  razorpayCustomerId        String?               @unique(map: "User_razorpayCustomerId_key")
+  resumeUploadsCount        Int                   @default(0)
+  savedJobsCount            Int                   @default(0)
+  stripeCustomerId          String?               @unique(map: "User_stripeCustomerId_key")
+  subscriptionEndDate       DateTime?
+  subscriptionPlan          String                @default("Free")
+  subscriptionStartDate     DateTime?
+  subscriptionStatus        String                @default("inactive")
+  emailAutomationEnabled    Boolean               @default(false)
+  emailAutomationFrequency  String                @default("inferred")
+  emailAutomationMaxResults Int                   @default(7)
+  emailAutomationSearchTime String                @default("09:00")
+  emailAutomationResumeText String?               @db.Text
+  isDeletionScheduled       Boolean               @default(false)
+  deletionRequestedDate     DateTime?
+  deletionScheduledDate     DateTime?
+  recoveryDeadlineDate      DateTime?
+  feedback                  feedback[]
+  otp                       otp[]
+  profile                   profile?
+  resume                    resume[]
+  savedjob                  savedjob[]
+  subscriptionhistory       subscriptionhistory[]
+  usagetracking             usagetracking[]
+  workflow                  workflow[]
+  plansubscription          plansubscription[]    @relation("plansubscriptiontouser")
+}
+
+model workflow {
+  id           Int     @id @default(autoincrement())
+  scheduleType String
+  prompt       String?
+  active       Boolean @default(true)
+  userId       Int
+  user         user    @relation(fields: [userId], references: [id], map: "Workflow_userId_fkey")
+
+  @@index([userId], map: "Workflow_userId_fkey")
 }

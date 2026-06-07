@@ -9,6 +9,7 @@ import { cn } from '../../utils/utils'
 import { Link } from 'react-router-dom';
 import UsageBanner from '../../components/UsageBanner';
 import SearchUsageVisualizer from '../../components/SearchUsageVisualizer';
+import DeleteAccountSection from '../../components/DeleteAccountSection';
 
 // Read real user from localStorage — never fall back to mockUser
 function getStoredUser() {
@@ -420,6 +421,8 @@ export default function SettingsPage() {
               <Button onClick={handleSave} loading={saved} className="w-full sm:w-auto">
                 <Save className="w-4 h-4" />{saved ? 'Saved!' : 'Save Changes'}
               </Button>
+
+              <DeleteAccountSection currentPlan={currentPlan} userEmail={email} />
             </Card>
           )}
 

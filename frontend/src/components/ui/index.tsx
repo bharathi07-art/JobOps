@@ -1,4 +1,5 @@
 import { cn } from '../../utils/utils'
+export { Button } from './Button'
 
 export function Card({ className, children, ...props }: React.HTMLAttributes<HTMLDivElement>) {
   return (

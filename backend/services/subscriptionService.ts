@@ -217,9 +217,9 @@ export const getUserSubscription = async (userId: number) => {
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
 
     const [dailyAgg, weeklyAgg, monthlyAgg] = await Promise.all([
-      prisma.usageTracking.aggregate({ where: { userId: user.id, date: { gte: startOfToday } }, _sum: { aiSearchesUsed: true } }),
-      prisma.usageTracking.aggregate({ where: { userId: user.id, date: { gte: startOfWeek } }, _sum: { aiSearchesUsed: true } }),
-      prisma.usageTracking.aggregate({ where: { userId: user.id, date: { gte: startOfMonth } }, _sum: { aiSearchesUsed: true } }),
+      prisma.usagetracking.aggregate({ where: { userId: user.id, date: { gte: startOfToday } }, _sum: { aiSearchesUsed: true } }),
+      prisma.usagetracking.aggregate({ where: { userId: user.id, date: { gte: startOfWeek } }, _sum: { aiSearchesUsed: true } }),
+      prisma.usagetracking.aggregate({ where: { userId: user.id, date: { gte: startOfMonth } }, _sum: { aiSearchesUsed: true } }),
     ]);
 
     const dailySearchesUsed   = dailyAgg._sum.aiSearchesUsed ?? 0;
@@ -294,8 +294,8 @@ export const updateSubscription = async (
     });
 
     // Record in subscription history
-    await prisma.subscriptionHistory.create({
-      data: {
+await prisma.subscriptionhistory.create({
+      data:{
         userId,
         planName: newPlan,
         action: user?.subscriptionPlan === 'Free' ? 'purchase' : 'upgrade',
@@ -307,6 +307,7 @@ export const updateSubscription = async (
         status: 'completed',
         startDate: currentDate,
         endDate,
+        updatedAt: new Date(),
       },
     });
 
@@ -359,8 +360,8 @@ export const cancelSubscription = async (userId: number) => {
     }
 
     // Record cancellation
-    await prisma.subscriptionHistory.create({
-      data: {
+await prisma.subscriptionhistory.create({
+      data:{
         userId,
         planName: user.subscriptionPlan,
         action: 'cancel',
@@ -368,6 +369,7 @@ export const cancelSubscription = async (userId: number) => {
         newPlan: 'Free',
         status: 'completed',
         endDate: new Date(),
+        updatedAt: new Date(),
       },
     });
 
@@ -451,8 +453,8 @@ export const canPerformAction = async (
           startOfWeek.setHours(0, 0, 0, 0);
           const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
           const [weeklyCount, monthlyCount] = await Promise.all([
-            prisma.usageTracking.aggregate({ where: { userId, date: { gte: startOfWeek } }, _sum: { aiSearchesUsed: true } }),
-            prisma.usageTracking.aggregate({ where: { userId, date: { gte: startOfMonth } }, _sum: { aiSearchesUsed: true } }),
+            prisma.usagetracking.aggregate({ where: { userId, date: { gte: startOfWeek } }, _sum: { aiSearchesUsed: true } }),
+            prisma.usagetracking.aggregate({ where: { userId, date: { gte: startOfMonth } }, _sum: { aiSearchesUsed: true } }),
           ]);
           const weekUsed  = weeklyCount._sum.aiSearchesUsed ?? 0;
           const monthUsed = monthlyCount._sum.aiSearchesUsed ?? 0;
@@ -469,7 +471,7 @@ export const canPerformAction = async (
         }
         // Pro plan (Monthly/Yearly): 2 searches per day — resets at midnight
         const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-        const dailyCount = await prisma.usageTracking.aggregate({
+        const dailyCount = await prisma.usagetracking.aggregate({
           where: { userId, date: { gte: startOfToday } },
           _sum: { aiSearchesUsed: true },
         });
@@ -563,7 +565,7 @@ export const incrementUsage = async (
       trackingData.resumesUploaded = { increment: 1 };
     }
 
-    await prisma.usageTracking.upsert({
+    await prisma.usagetracking.upsert({
       where: {
         userId_date: {
           userId,
@@ -593,7 +595,7 @@ export const incrementUsage = async (
  */
 export const getSubscriptionHistory = async (userId: number, limit = 10) => {
   try {
-    return await prisma.subscriptionHistory.findMany({
+return await prisma.subscriptionhistory.findMany({
       where: { userId },
       orderBy: { createdAt: 'desc' },
       take: limit,
@@ -612,7 +614,7 @@ export const getUserUsageAnalytics = async (userId: number, days = 30) => {
     const startDate = new Date();
     startDate.setDate(startDate.getDate() - days);
 
-    const usage = await prisma.usageTracking.findMany({
+    const usage = await prisma.usagetracking.findMany({
       where: {
         userId,
         date: {
@@ -630,7 +632,7 @@ export const getUserUsageAnalytics = async (userId: number, days = 30) => {
       dailyData: usage,
     };
 
-    usage.forEach((day) => {
+    usage.forEach((day: any) => {
       summary.totalAISearches += day.aiSearchesUsed;
       summary.totalJobsSaved += day.jobsSaved;
       summary.totalResumesUploaded += day.resumesUploaded;

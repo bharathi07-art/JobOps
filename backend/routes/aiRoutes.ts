@@ -22,7 +22,6 @@ import { proPlanOnly } from '../middleware/proPlanMiddleware';
 router.post(
   '/analyze',
   authMiddleware,
-  checkUsageLimit('uploadResume'),
   checkUsageLimit('aiSearch'),
   upload.single('resume'),
   analyzeResume

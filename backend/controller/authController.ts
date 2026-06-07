@@ -343,7 +343,7 @@ export const otpSend=async(req:Request, res:Response)=>{
     // attach userId when user exists (optional relation)
     const user = await prisma.user.findUnique({ where: { email } });
 
-    await prisma.oTP.create({
+prisma.otp.create({
       data:{
         email,
         otp,
@@ -398,7 +398,7 @@ export const verifyOTP=async (req:Request, res:Response)=>{
     if(!name || !email || !password || !otp){
       return res.status(400).json({ message: "Please fill all the fields" })
     }
-    const otpRecord = await prisma.oTP.findFirst({
+const otpRecord = await prisma.otp.findFirst({
       where:{
         email,
         otp,
@@ -439,7 +439,7 @@ export const verifyOTP=async (req:Request, res:Response)=>{
       {expiresIn: "30d"}
     );
 
-    await prisma.oTP.delete({
+await prisma.otp.delete({
       where:{
         id: otpRecord.id
       },

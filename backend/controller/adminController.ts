@@ -43,14 +43,14 @@ export const getOverview = async (req: Request, res: Response) => {
     const premiumSubscribers = monthlySubscribers + yearlySubscribers
 
     // Revenue from subscription history
-    const revenueAgg = await prisma.subscriptionHistory.aggregate({
+    const revenueAgg = await prisma.subscriptionhistory.aggregate({
       where: { status: 'completed', action: { in: ['purchase', 'renew', 'upgrade'] } },
       _sum: { amount: true },
     })
     const totalRevenue = revenueAgg._sum.amount ?? 0
 
     // Monthly revenue for chart (last 12 months)
-    const monthlyRevenueRaw = await prisma.subscriptionHistory.findMany({
+    const monthlyRevenueRaw = await prisma.subscriptionhistory.findMany({
       where: {
         status: 'completed',
         action: { in: ['purchase', 'renew', 'upgrade'] },
@@ -60,7 +60,7 @@ export const getOverview = async (req: Request, res: Response) => {
     })
 
     const monthMap: Record<string, number> = {}
-    monthlyRevenueRaw.forEach(r => {
+    monthlyRevenueRaw.forEach((r: any) => {
       const key = r.createdAt.toLocaleString('en-US', { month: 'short', year: '2-digit' })
       monthMap[key] = (monthMap[key] ?? 0) + (r.amount ?? 0)
     })

@@ -1,14 +1,13 @@
 import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import axios from 'axios'
-import { Send, TrendingUp, Star, Bookmark, Sparkles, Brain, Target, Activity, Lock } from 'lucide-react'
+import { Send, TrendingUp, Star, Bookmark, Sparkles, Brain, Target, Activity } from 'lucide-react'
 import { DashboardLayout } from '../../components/layout/DashboardLayout'
 import { Card } from '../../components/ui/index'
 import { cn } from '../../utils/utils'
 import type { Application } from '../../types'
 import { useSubscription } from '../../contexts/SubscriptionContext'
 import { useUpgradePrompt } from '../../hooks/useUpgradePrompt'
-import { UpgradeModal } from '../../components/UpgradeModal'
 import { UpgradeBanner } from '../../utils/UpgradeBanner'
 
 interface AIResult {
@@ -88,7 +87,7 @@ const statusColors: Record<string, string> = {
 
 export default function AnalyticsPage() {
   const { isPremium, loading } = useSubscription()
-  const { isUpgradeModalOpen, upgradeInfo, showUpgradeModal, closeUpgradeModal } = useUpgradePrompt({
+  const { showUpgradeModal } = useUpgradePrompt({
     featureName: 'Advanced Analytics',
   })
   const [apiUpgradeInfo, setApiUpgradeInfo] = useState<{ message: string; requiredPlans: string[]; upgradeUrl: string } | null>(null)

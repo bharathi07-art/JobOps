@@ -2,11 +2,14 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import HomePage from './pages/HomePage'
 import Login from './componenets/Login'
 import Register from './componenets/Register'
+import RecoverAccountPage from './pages/RecoverAccountPage'
 import ForgotPassword from './componenets/ForgotPassword'
 import VerifyOTP from './componenets/VerifyOTP'
 import Dashboard from './pages/dashboard/Dashboard';
 import PricingPage from './pages/PricingPage';
 import ResumePage from './pages/dashboard/ResumePage'
+import TermsOfService from './pages/TermsOfService'
+import PrivacyPolicy from './pages/PrivacyPolicy'
 import { SubscriptionProvider } from './contexts/SubscriptionContext'
 import { useSubscription } from './contexts/SubscriptionContext'
 import JobsPage from './pages/dashboard/JobsPage'
@@ -26,6 +29,7 @@ import AdminFeedback from './pages/admin/AdminFeedback'
 import AdminUsers from './pages/admin/AdminUsers'
 import AdminAIMonitor from './pages/admin/AdminAIMonitor'
 import AdminSettings from './pages/admin/AdminSettings'
+import AdminRecoveryRequests from './pages/admin/AdminRecoveryRequests'
 
 function parseUserInfo() {
   try {
@@ -73,8 +77,11 @@ function App() {
           <Route path="/" element={<HomePage />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
+          <Route path="/recover-account" element={<RecoverAccountPage />} />
           <Route path="/verify-otp" element={<VerifyOTP />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
+          <Route path="/terms-of-service" element={<TermsOfService />} />
+          <Route path="/privacy-policy" element={<PrivacyPolicy />} />
           {/* User Dashboard */}
           <Route path="/dashboard" element={<RequireAuth><Dashboard /></RequireAuth>} />
           <Route path="/dashboard/resume" element={<RequireAuth><ResumePage /></RequireAuth>} />
@@ -95,6 +102,7 @@ function App() {
           <Route path="/admin/users" element={<AdminRequireAuth><AdminUsers /></AdminRequireAuth>} />
           <Route path="/admin/ai-monitor" element={<AdminRequireAuth><AdminAIMonitor /></AdminRequireAuth>} />
           <Route path="/admin/settings" element={<AdminRequireAuth><AdminSettings /></AdminRequireAuth>} />
+          <Route path="/admin/recovery-requests" element={<AdminRequireAuth><AdminRecoveryRequests /></AdminRequireAuth>} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
         <AIChatbot />

@@ -75,7 +75,8 @@ export default function ResumePage() {
     // we skip the gate when subscription hasn't resolved yet (isPremium === false but
     // subscription object is null means still loading).
     if (!isPremium && subscription !== null) {
-      const allowed = checkAndPromptUpgrade('uploadResume')
+      // Check aiSearch limit only — not uploadResume (resume uploads are unlimited for the search feature)
+      const allowed = checkAndPromptUpgrade('aiSearch')
       if (!allowed) return
     }
 

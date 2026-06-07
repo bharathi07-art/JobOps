@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import prisma from '../config/prisma';
-import pdfParse from 'pdf-parse';
+const pdfParse = require('pdf-parse');
 import mammoth from 'mammoth';
 
 const getUserId = (req: Request): number | null => {

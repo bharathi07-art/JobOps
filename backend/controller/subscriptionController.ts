@@ -242,7 +242,7 @@ export const getAdminSubscriptionAnalytics = async (req: AuthRequest, res: Respo
     }
 
     // Monthly revenue
-    const monthlyRevenue = await prisma.subscriptionHistory.groupBy({
+    const monthlyRevenue = await prisma.subscriptionhistory.groupBy({
       by: ['createdAt'],
       where: {
         status: 'completed',
@@ -266,7 +266,7 @@ export const getAdminSubscriptionAnalytics = async (req: AuthRequest, res: Respo
     });
 
     // Revenue summary
-    const totalRevenue = await prisma.subscriptionHistory.aggregate({
+    const totalRevenue = await prisma.subscriptionhistory.aggregate({
       where: {
         status: 'completed',
         action: { in: ['purchase', 'renew', 'upgrade'] },

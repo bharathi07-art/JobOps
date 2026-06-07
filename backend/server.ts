@@ -17,8 +17,10 @@ import adminRoutes from "./routes/adminRoutes";
 import feedbackRoutes from "./routes/feedbackRoutes";
 import subscriptionRoutes from "./routes/subscriptionRoutes";
 import emailAutomationRoutes from "./routes/emailAutomationRoutes";
+import accountDeletionRoutes from "./routes/accountDeletionRoutes";
 import logoutRoute from "./routes/logoutRoute";
 import { startEmailAutomationScheduler } from "./scheduler/emailAutomationScheduler";
+import { runPermanentDeletionJob } from "./services/accountDeletionService";
 
 const app = express();
 
@@ -53,6 +55,8 @@ app.use("/api/ai", chatRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/feedback", feedbackRoutes);
 app.use("/api/subscription", subscriptionRoutes);
+app.use("/api/email-automation", emailAutomationRoutes);
+app.use("/api/account", accountDeletionRoutes);
 app.use('/logout', logoutRoute);
 
 
@@ -61,6 +65,11 @@ const port: number = Number(process.env.PORT) || 5000;
 connDB().then(() => {
   // Start background email automation after Mongo is connected
   startEmailAutomationScheduler();
+
+  // Run permanent deletion job every 6 hours
+  setInterval(() => {
+    runPermanentDeletionJob().catch(err => console.error('Permanent deletion job failed:', err));
+  }, 6 * 60 * 60 * 1000);
 
   app.listen(port, () => {
     console.log(`Server running at http://localhost:${port}`);

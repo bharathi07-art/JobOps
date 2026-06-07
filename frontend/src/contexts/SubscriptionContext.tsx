@@ -122,7 +122,7 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
   }, [loading, subscription]);
 
   const canPerformAction = (
-    action: 'aiSearch' | 'saveJob' | 'uploadResume'
+    action: 'aiSearch' | 'saveJob' | 'uploadResume' | 'askQuestion' | 'application'
   ): { allowed: boolean; remaining: number } => {
     if (!subscription) {
       return { allowed: false, remaining: 0 };

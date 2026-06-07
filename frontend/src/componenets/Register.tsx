@@ -127,6 +127,13 @@ export default function Register() {
           Already have an account?{' '}
           <Link to="/login" className="text-[#FF4500] font-medium hover:underline">Sign in</Link>
         </p>
+
+        <div className="mt-4 pt-4 border-t border-gray-200">
+          <p className="text-center text-sm text-gray-500">
+            Deleted your account?{' '}
+            <Link to="/recover-account" className="text-[#FF4500] font-medium hover:underline">Need Account Recovery?</Link>
+          </p>
+        </div>
       </motion.div>
     </div>
   )

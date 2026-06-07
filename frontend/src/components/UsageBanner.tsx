@@ -2,13 +2,9 @@ import { useSubscription } from '../contexts/SubscriptionContext';
 import { Link } from 'react-router-dom';
 
 export default function UsageBanner() {
-  const { subscription, isPremium, canPerformAction } = useSubscription();
+  const { subscription, isPremium, canPerformAction: _canPerformAction } = useSubscription();
 
   if (isPremium || !subscription) return null;
-
-  const aiSearches = canPerformAction('aiSearch');
-  const savedJobs = canPerformAction('saveJob');
-  const applications = canPerformAction('application');
 
   const maxSearches = subscription.maxAISearches || 4;
   const maxSavedJobs = subscription.maxSavedJobs || 10; // Might be different now, let's just use what's returned by remaining if possible. Wait, maxSavedJobs is available.

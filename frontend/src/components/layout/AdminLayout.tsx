@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import {
   LayoutDashboard, Users, CreditCard, BarChart3, MessageSquare,
   Activity, Cpu, Settings, LogOut, Menu, X, Sparkles,
-  Bell, ChevronDown, Shield
+  Bell, ChevronDown, Shield, RotateCcw
 } from 'lucide-react'
 import { cn } from '../../utils/utils'
 
@@ -15,6 +15,7 @@ const navItems = [
   { to: '/admin/revenue', label: 'Revenue', icon: Activity },
   { to: '/admin/users', label: 'User Activity', icon: Users },
   { to: '/admin/feedback', label: 'Feedback', icon: MessageSquare, badge: 4 },
+  { to: '/admin/recovery-requests', label: 'Recovery Requests', icon: RotateCcw },
   { to: '/admin/ai-monitor', label: 'AI Monitor', icon: Cpu },
   { to: '/admin/settings', label: 'Settings', icon: Settings },
 ]
