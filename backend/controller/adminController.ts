@@ -233,3 +233,41 @@ export const getLogs = async (req: Request, res: Response) => {
     res.status(500).json({ message: error.message || 'Failed to fetch logs' })
   }
 }
+
+export const getSettings = async (req: Request, res: Response) => {
+  if (!(await isRequesterAdmin(req))) {
+    return res.status(403).json({ message: 'Forbidden' })
+  }
+  try {
+    let settings = await prisma.adminsettings.findFirst()
+    if (!settings) {
+      settings = await prisma.adminsettings.create({ data: {} })
+    }
+    res.json({ success: true, settings })
+  } catch (error: any) {
+    res.status(500).json({ message: error.message || 'Failed to fetch settings' })
+  }
+}
+
+export const updateSettings = async (req: Request, res: Response) => {
+  if (!(await isRequesterAdmin(req))) {
+    return res.status(403).json({ message: 'Forbidden' })
+  }
+  try {
+    const data = req.body
+    let settings = await prisma.adminsettings.findFirst()
+    
+    if (!settings) {
+      settings = await prisma.adminsettings.create({ data })
+    } else {
+      settings = await prisma.adminsettings.update({
+        where: { id: settings.id },
+        data,
+      })
+    }
+    
+    res.json({ success: true, message: 'Settings updated successfully', settings })
+  } catch (error: any) {
+    res.status(500).json({ message: error.message || 'Failed to update settings' })
+  }
+}

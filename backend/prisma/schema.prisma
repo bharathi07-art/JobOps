@@ -34,6 +34,45 @@ model adminnotification {
   createdAt        DateTime @default(now())
 }
 
+model adminsettings {
+  id                            Int      @id @default(autoincrement())
+  platformName                  String   @default("JobOps")
+  supportEmail                  String   @default("support@jobops.ai")
+  maxFreeAIRequestsPerMonth     Int      @default(4)
+  maxProAIRequestsPerDay        Int      @default(1)
+  maintenanceMode               Boolean  @default(false)
+  newUserRegistrationsEnabled   Boolean  @default(true)
+  aiMatchingFeatureEnabled      Boolean  @default(true)
+  pwaSupport                    Boolean  @default(true)
+  activeAIProvider              String   @default("Gemini")
+  aiModelName                   String   @default("gemini-1.5-flash")
+  aiApiKey                      String?  @db.Text
+  maxTokensPerRequest           Int      @default(2048)
+  requestTimeout                Int      @default(30)
+  retryAttempts                 Int      @default(3)
+  fallbackToOpenAI              Boolean  @default(false)
+  requestLogging                Boolean  @default(true)
+  rateLimiting                  Boolean  @default(true)
+  freePlanPrice                 Float    @default(0)
+  freePlanFeatures              String?  @db.Text
+  monthlyPlanPrice              Float    @default(20)
+  monthlyPlanFeatures           String?  @db.Text
+  yearlyPlanPrice               Float    @default(220)
+  yearlyPlanFeatures            String?  @db.Text
+  notifyNewUsers                Boolean  @default(true)
+  notifyBillingIssues           Boolean  @default(true)
+  notifyAIFailures              Boolean  @default(true)
+  notifyFeedback                Boolean  @default(true)
+  weeklyAnalyticsReport         Boolean  @default(false)
+  notifySubscriptionRenewals    Boolean  @default(false)
+  twoFactorAuthRequired         Boolean  @default(true)
+  sessionTimeout                Boolean  @default(true)
+  ipAllowlist                   Boolean  @default(false)
+  auditLogging                  Boolean  @default(true)
+  createdAt                     DateTime @default(now())
+  updatedAt                     DateTime @updatedAt
+}
+
 model feedback {
   id        Int      @id @default(autoincrement())
   subject   String

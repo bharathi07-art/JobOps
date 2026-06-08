@@ -5,6 +5,7 @@ import Register from './componenets/Register'
 import RecoverAccountPage from './pages/RecoverAccountPage'
 import ForgotPassword from './componenets/ForgotPassword'
 import VerifyOTP from './componenets/VerifyOTP'
+import OAuthCallback from './pages/OAuthCallback'
 import Dashboard from './pages/dashboard/Dashboard';
 import PricingPage from './pages/PricingPage';
 import ResumePage from './pages/dashboard/ResumePage'
@@ -80,6 +81,7 @@ function App() {
           <Route path="/recover-account" element={<RecoverAccountPage />} />
           <Route path="/verify-otp" element={<VerifyOTP />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
+          <Route path="/oauth-callback" element={<OAuthCallback />} />
           <Route path="/terms-of-service" element={<TermsOfService />} />
           <Route path="/privacy-policy" element={<PrivacyPolicy />} />
           {/* User Dashboard */}

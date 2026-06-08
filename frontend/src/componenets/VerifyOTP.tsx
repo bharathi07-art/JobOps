@@ -1,7 +1,6 @@
 import { useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { Button } from '../components/ui/Button'
-
 import { useSubscription } from '../contexts/SubscriptionContext'
 
 export default function VerifyOTP(){

@@ -44,7 +44,8 @@ export default function AdminOverview() {
   useEffect(() => {
     async function load() {
       try {
-        const token = (() => { try { return JSON.parse(localStorage.getItem('userInfo')||'null')?.token } catch { return null } })();
+        const userInfo = (() => { try { return JSON.parse(localStorage.getItem('userInfo')||'null') } catch { return null } })();
+        const token = userInfo?.token;
         const headers = token ? { Authorization: `Bearer ${token}` } : {};
         const [ovRes, logsRes] = await Promise.all([
           axios.get('/api/admin/overview', { headers }),

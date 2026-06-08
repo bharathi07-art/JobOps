@@ -175,7 +175,7 @@ export const googleAuthCallback = async (req: Request, res: Response): Promise<v
     }
 
     const token = jwt.sign(
-      { id: user.id },
+      { id: user.id, isAdmin: !!user.isAdmin },
       JWT_SECRET,
       { expiresIn: "30d" }
     );
@@ -189,8 +189,7 @@ export const googleAuthCallback = async (req: Request, res: Response): Promise<v
     // Redirect to frontend with token and user info
     const hasPassword = user.password !== '';
     const sub = await getUserSubscription(user.id);
-    const redirectBase = user.isAdmin ? 'http://localhost:5173/admin' : 'http://localhost:5173/dashboard';
-    const frontendRedirectUrl = `${redirectBase}?token=${encodeURIComponent(token)}&id=${encodeURIComponent(user.id)}&isAdmin=${encodeURIComponent(user.isAdmin)}&plan=${encodeURIComponent(sub.subscriptionPlan)}&name=${encodeURIComponent(user.name)}&email=${encodeURIComponent(user.email)}&avatar=${encodeURIComponent(user.avatar || '')}&hasPassword=${encodeURIComponent(hasPassword)}`;
+    const frontendRedirectUrl = `http://localhost:5173/oauth-callback?token=${encodeURIComponent(token)}&id=${encodeURIComponent(user.id)}&isAdmin=${encodeURIComponent(user.isAdmin)}&plan=${encodeURIComponent(sub.subscriptionPlan)}&name=${encodeURIComponent(user.name)}&email=${encodeURIComponent(user.email)}&avatar=${encodeURIComponent(user.avatar || '')}&hasPassword=${encodeURIComponent(hasPassword)}`;
     res.redirect(frontendRedirectUrl);
   } catch (err: any) {
     res.status(500).json({ message: err.message });
@@ -207,7 +206,7 @@ export const githubAuthCallback = async (req: Request, res: Response): Promise<v
     }
 
     const token = jwt.sign(
-      { id: user.id },
+      { id: user.id, isAdmin: !!user.isAdmin },
       JWT_SECRET,
       { expiresIn: "30d" }
     );
@@ -222,8 +221,7 @@ export const githubAuthCallback = async (req: Request, res: Response): Promise<v
     // Redirect to frontend with token and user info
     const hasPassword = user.password !== '';
     const sub = await getUserSubscription(user.id);
-    const redirectBase = user.isAdmin ? 'http://localhost:5173/admin' : 'http://localhost:5173/dashboard';
-    const frontendRedirectUrl = `${redirectBase}?token=${encodeURIComponent(token)}&id=${encodeURIComponent(user.id)}&isAdmin=${encodeURIComponent(user.isAdmin)}&plan=${encodeURIComponent(sub.subscriptionPlan)}&name=${encodeURIComponent(user.name)}&email=${encodeURIComponent(user.email)}&avatar=${encodeURIComponent(user.avatar || '')}&hasPassword=${encodeURIComponent(hasPassword)}`;
+    const frontendRedirectUrl = `http://localhost:5173/oauth-callback?token=${encodeURIComponent(token)}&id=${encodeURIComponent(user.id)}&isAdmin=${encodeURIComponent(user.isAdmin)}&plan=${encodeURIComponent(sub.subscriptionPlan)}&name=${encodeURIComponent(user.name)}&email=${encodeURIComponent(user.email)}&avatar=${encodeURIComponent(user.avatar || '')}&hasPassword=${encodeURIComponent(hasPassword)}`;
     res.redirect(frontendRedirectUrl);
   } catch (err: any) {
     res.status(500).json({ message: err.message });
@@ -337,15 +335,18 @@ export const otpSend=async(req:Request, res:Response)=>{
       return res.status(400).json({message: 'Email is required'});
     }
 
+    // Normalize email to lowercase
+    const normalizedEmail = email.trim().toLowerCase();
+
     const otp = generateOTP();
     const expiresAt = new Date(Date.now() + 5 * 60 * 1000);
 
     // attach userId when user exists (optional relation)
-    const user = await prisma.user.findUnique({ where: { email } });
+    const user = await prisma.user.findUnique({ where: { email: normalizedEmail } });
 
-prisma.otp.create({
+    await prisma.otp.create({
       data:{
-        email,
+        email: normalizedEmail,
         otp,
         expiresAt,
         userId: user ? user.id : undefined,
@@ -398,10 +399,15 @@ export const verifyOTP=async (req:Request, res:Response)=>{
     if(!name || !email || !password || !otp){
       return res.status(400).json({ message: "Please fill all the fields" })
     }
-const otpRecord = await prisma.otp.findFirst({
+
+    // Normalize email and OTP to lowercase and trim whitespace
+    const normalizedEmail = email.trim().toLowerCase();
+    const normalizedOtp = otp.trim();
+
+    const otpRecord = await prisma.otp.findFirst({
       where:{
-        email,
-        otp,
+        email: normalizedEmail,
+        otp: normalizedOtp,
       },
     });
 
@@ -417,7 +423,7 @@ const otpRecord = await prisma.otp.findFirst({
       })
     }
     const existingUser = await prisma.user.findUnique({
-      where:{email,}
+      where:{email: normalizedEmail,}
     })
 
     if(existingUser){
@@ -429,7 +435,7 @@ const otpRecord = await prisma.otp.findFirst({
     const hashPassword = await bcrypt.hash(password, 10);
     const user = await prisma.user.create({
       data:{
-        name, email, password: hashPassword,
+        name, email: normalizedEmail, password: hashPassword,
       }
     });
 
@@ -439,7 +445,7 @@ const otpRecord = await prisma.otp.findFirst({
       {expiresIn: "30d"}
     );
 
-await prisma.otp.delete({
+    await prisma.otp.delete({
       where:{
         id: otpRecord.id
       },

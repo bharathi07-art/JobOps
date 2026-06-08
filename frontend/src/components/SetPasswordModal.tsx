@@ -44,6 +44,11 @@ export default function SetPasswordModal({ onClose, required = false }: Props) {
       })
       const data = await res.json()
       if (res.ok) {
+        // Update localStorage to mark that password is now set
+        const userInfo = JSON.parse(localStorage.getItem('userInfo') || '{}')
+        userInfo.hasPassword = true
+        localStorage.setItem('userInfo', JSON.stringify(userInfo))
+        
         setSuccess(true)
         setTimeout(() => onClose(), 1800)
       } else {
