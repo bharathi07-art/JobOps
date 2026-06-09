@@ -10,6 +10,54 @@ import { json } from "node:stream/consumers";
 dotenv.config();
 const JWT_SECRET = process.env.JWT_SECRET as string
 
+export const validatePasswordChangePayload = (
+  currentPassword: string,
+  newPassword: string,
+  confirmPassword: string
+) => {
+  if (!currentPassword || !newPassword || !confirmPassword) {
+    return { ok: false, message: 'All password fields are required' };
+  }
+
+  if (typeof currentPassword !== 'string' || typeof newPassword !== 'string' || typeof confirmPassword !== 'string') {
+    return { ok: false, message: 'Invalid password payload' };
+  }
+
+  if (newPassword.length < 6) {
+    return { ok: false, message: 'New password must be at least 6 characters' };
+  }
+
+  if (newPassword !== confirmPassword) {
+    return { ok: false, message: 'New password and confirmation do not match' };
+  }
+
+  return { ok: true };
+};
+
+export const validatePasswordResetPayload = (
+  email: string,
+  otp: string,
+  newPassword: string,
+  confirmPassword: string
+) => {
+  if (!email || !otp || !newPassword || !confirmPassword) {
+    return { ok: false, message: 'Email, reset code, and new password are required' };
+  }
+
+  if (typeof email !== 'string' || typeof otp !== 'string' || typeof newPassword !== 'string' || typeof confirmPassword !== 'string') {
+    return { ok: false, message: 'Invalid reset payload' };
+  }
+
+  if (newPassword.length < 6) {
+    return { ok: false, message: 'New password must be at least 6 characters' };
+  }
+
+  if (newPassword !== confirmPassword) {
+    return { ok: false, message: 'New password and confirmation do not match' };
+  }
+
+  return { ok: true };
+};
 
 export const register = async (req:Request, res:Response):Promise<void>=>{
     try{
@@ -260,6 +308,160 @@ export const setOAuthPassword = async (req: Request, res: Response): Promise<Res
     return res.status(500).json({ message: err.message });
   }
 }
+
+export const changePassword = async (req: Request, res: Response): Promise<Response> => {
+  try {
+    const userId = (req as any).user?.id;
+    if (!userId) {
+      return res.status(401).json({ message: 'Unauthorized' });
+    }
+
+    const { currentPassword, newPassword, confirmPassword } = req.body || {};
+    const validation = validatePasswordChangePayload(currentPassword, newPassword, confirmPassword);
+
+    if (!validation.ok) {
+      return res.status(400).json({ message: validation.message });
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { id: Number(userId) },
+      select: { password: true },
+    });
+
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    if (!user.password) {
+      return res.status(400).json({ message: 'No password is set for this account. Please set one first.' });
+    }
+
+    const isCurrentPasswordValid = await bcrypt.compare(currentPassword, user.password);
+    if (!isCurrentPasswordValid) {
+      return res.status(401).json({ message: 'Current password is incorrect' });
+    }
+
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    await prisma.user.update({
+      where: { id: Number(userId) },
+      data: { password: hashedPassword },
+    });
+
+    return res.status(200).json({ success: true, message: 'Password updated successfully' });
+  } catch (err: any) {
+    return res.status(500).json({ message: err.message });
+  }
+};
+
+export const requestPasswordResetOTP = async (req: Request, res: Response): Promise<Response> => {
+  try {
+    const { email } = req.body || {};
+    if (!email || typeof email !== 'string') {
+      return res.status(400).json({ message: 'Email is required' });
+    }
+
+    const normalizedEmail = email.trim().toLowerCase();
+    const user = await prisma.user.findUnique({
+      where: { email: normalizedEmail },
+      select: { id: true },
+    });
+
+    if (!user) {
+      return res.status(200).json({
+        message: 'If an account exists for that email, a password reset code has been sent.',
+      });
+    }
+
+    await prisma.otp.deleteMany({ where: { email: normalizedEmail } });
+
+    const otp = generateOTP();
+    const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
+    await prisma.otp.create({
+      data: {
+        email: normalizedEmail,
+        otp,
+        expiresAt,
+        userId: user.id,
+      },
+    });
+
+    const canSendEmail = Boolean(process.env.EMAIL_USER && process.env.EMAIL_PASS);
+    if (canSendEmail) {
+      await transporter.sendMail({
+        from: process.env.EMAIL_USER,
+        to: normalizedEmail,
+        subject: 'JobOps Password Reset Code',
+        html: `
+          <h2>Password reset request</h2>
+          <p>Your password reset code is:</p>
+          <h1>${otp}</h1>
+          <p>This code expires in 10 minutes.</p>
+        `,
+      });
+    } else {
+      console.warn('Password reset email not sent because EMAIL_USER or EMAIL_PASS is not configured.');
+    }
+
+    const responsePayload: any = {
+      message: 'If an account exists for that email, a password reset code has been sent.',
+    };
+
+    if (!canSendEmail && process.env.NODE_ENV !== 'production') {
+      responsePayload.otp = otp;
+    }
+
+    return res.status(200).json(responsePayload);
+  } catch (err: any) {
+    return res.status(500).json({ message: err.message });
+  }
+};
+
+export const resetPasswordWithOTP = async (req: Request, res: Response): Promise<Response> => {
+  try {
+    const { email, otp, newPassword, confirmPassword } = req.body || {};
+    const validation = validatePasswordResetPayload(email, otp, newPassword, confirmPassword);
+
+    if (!validation.ok) {
+      return res.status(400).json({ message: validation.message });
+    }
+
+    const normalizedEmail = String(email).trim().toLowerCase();
+    const normalizedOtp = String(otp).trim();
+    const otpRecord = await prisma.otp.findFirst({
+      where: { email: normalizedEmail, otp: normalizedOtp },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    if (!otpRecord) {
+      return res.status(400).json({ message: 'Invalid reset code' });
+    }
+
+    if (otpRecord.expiresAt < new Date()) {
+      return res.status(400).json({ message: 'Reset code has expired' });
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { email: normalizedEmail },
+      select: { id: true },
+    });
+
+    if (!user) {
+      return res.status(404).json({ message: 'Account not found' });
+    }
+
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    await prisma.user.update({
+      where: { id: user.id },
+      data: { password: hashedPassword },
+    });
+
+    await prisma.otp.deleteMany({ where: { email: normalizedEmail } });
+
+    return res.status(200).json({ success: true, message: 'Password reset successfully' });
+  } catch (err: any) {
+    return res.status(500).json({ message: err.message });
+  }
+};
 
 export const subscribePlan = async (req: Request, res: Response): Promise<Response> => {
   try {

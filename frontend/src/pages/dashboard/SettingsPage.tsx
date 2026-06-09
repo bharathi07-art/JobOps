@@ -95,6 +95,13 @@ export default function SettingsPage() {
   const [isSubscribing, setIsSubscribing] = useState(false)
   const [subscriptionMessage, setSubscriptionMessage] = useState('')
 
+  // Security settings state
+  const [currentPassword, setCurrentPassword] = useState('')
+  const [newPassword, setNewPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
+  const [isChangingPassword, setIsChangingPassword] = useState(false)
+  const [passwordMessage, setPasswordMessage] = useState({ text: '', type: '' })
+
   // Automation settings state
   const [automationEnabled, setAutomationEnabled] = useState(false)
   const [automationMaxResults, setAutomationMaxResults] = useState(7)
@@ -201,6 +208,39 @@ export default function SettingsPage() {
       setAutomationMessage({ text: 'Unable to upload resume.', type: 'error' })
     } finally {
       setIsUploadingResume(false)
+    }
+  }
+
+  const handleChangePassword = async () => {
+    setIsChangingPassword(true)
+    setPasswordMessage({ text: '', type: '' })
+
+    try {
+      const raw = localStorage.getItem('userInfo')
+      const token = raw ? JSON.parse(raw)?.token : null
+
+      const res = await fetch('/api/auth/change-password', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: token ? `Bearer ${token}` : '',
+        },
+        body: JSON.stringify({ currentPassword, newPassword, confirmPassword }),
+      })
+
+      const data = await res.json()
+      if (!res.ok) {
+        throw new Error(data.message || 'Unable to change password')
+      }
+
+      setPasswordMessage({ text: 'Password updated successfully.', type: 'success' })
+      setCurrentPassword('')
+      setNewPassword('')
+      setConfirmPassword('')
+    } catch (error: any) {
+      setPasswordMessage({ text: error.message || 'Unable to change password.', type: 'error' })
+    } finally {
+      setIsChangingPassword(false)
     }
   }
 
@@ -444,10 +484,15 @@ export default function SettingsPage() {
           {activeTab === 'security' && (
             <Card className="p-6 space-y-4">
               <h2 className="font-semibold text-gray-900">Security Settings</h2>
-              <Input label="Current Password" type="password" placeholder="••••••••" />
-              <Input label="New Password" type="password" placeholder="••••••••" />
-              <Input label="Confirm Password" type="password" placeholder="••••••••" />
-              <Button>Update Password</Button>
+              <Input label="Current Password" type="password" placeholder="••••••••" value={currentPassword} onChange={e => setCurrentPassword(e.target.value)} />
+              <Input label="New Password" type="password" placeholder="••••••••" value={newPassword} onChange={e => setNewPassword(e.target.value)} />
+              <Input label="Confirm Password" type="password" placeholder="••••••••" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} />
+              {passwordMessage.text && (
+                <div className={cn('rounded-xl p-3 text-sm', passwordMessage.type === 'error' ? 'bg-red-50 text-red-700' : 'bg-green-50 text-green-700')}>
+                  {passwordMessage.text}
+                </div>
+              )}
+              <Button onClick={handleChangePassword} loading={isChangingPassword}>Update Password</Button>
               <div className="pt-4 border-t border-gray-100">
                 <h3 className="text-sm font-semibold text-gray-900 mb-3">Two-Factor Authentication</h3>
                 <div className="flex items-center justify-between p-4 bg-gray-50 rounded-xl">
