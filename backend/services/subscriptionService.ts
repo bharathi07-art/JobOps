@@ -121,16 +121,14 @@ export const getLockedFeaturesForPlan = (plan: PlanKey): LockedFeature[] => {
   return [];
 };
 
-const normalizeDbPlanToPlanKey = (plan: any): PlanKey => {
-  // DB schema is Monthly/Yearly, but some records/paths may store "Monthly/Yearly".
-  // Also tolerate legacy "monthly/Yearly" casing.
-  if (plan === 'Monthly' || plan === 'monthly') return 'Monthly';
-  if (plan === 'Yearly' || plan === 'Yearly') return 'Yearly';
+export const normalizeDbPlanToPlanKey = (plan: any): PlanKey => {
+  const normalizedPlan = String(plan ?? '').trim().toLowerCase();
 
-  // If DB already stores canonical plan keys.
-  if (plan === 'Monthly' || plan === 'Yearly' || plan === 'Free') return plan;
+  if (['monthly', 'promonthly', 'pro_monthly'].includes(normalizedPlan)) return 'Monthly';
+  if (['yearly', 'proyearly', 'pro_yearly'].includes(normalizedPlan)) return 'Yearly';
+  if (normalizedPlan === 'free') return 'Free';
 
-  return 'Free';
+  return plan === 'Monthly' || plan === 'Yearly' || plan === 'Free' ? plan : 'Free';
 };
 
 

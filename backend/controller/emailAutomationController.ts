@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import prisma from '../config/prisma';
+import { normalizeDbPlanToPlanKey } from '../services/subscriptionService';
 const pdfParse = require('pdf-parse');
 import mammoth from 'mammoth';
 
@@ -9,8 +10,9 @@ const getUserId = (req: Request): number | null => {
   return Number(userId);
 };
 
-const isProActive = (subscriptionStatus: string, subscriptionPlan: string) => {
-  const isPremiumPlan = subscriptionPlan === 'Monthly' || subscriptionPlan === 'Yearly';
+export const isProActive = (subscriptionStatus: string, subscriptionPlan: string) => {
+  const normalizedPlan = normalizeDbPlanToPlanKey(subscriptionPlan);
+  const isPremiumPlan = normalizedPlan === 'Monthly' || normalizedPlan === 'Yearly';
   return (subscriptionStatus === 'active' || subscriptionStatus === 'inactive') && isPremiumPlan;
 };
 
