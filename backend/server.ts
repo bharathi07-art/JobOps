@@ -21,6 +21,7 @@ import accountDeletionRoutes from "./routes/accountDeletionRoutes";
 import logoutRoute from "./routes/logoutRoute";
 import { startEmailAutomationScheduler } from "./scheduler/emailAutomationScheduler";
 import { runPermanentDeletionJob } from "./services/accountDeletionService";
+import payment from "./routes/PaymentRoutes";
 
 const app = express();
 
@@ -58,6 +59,8 @@ app.use("/api/subscription", subscriptionRoutes);
 app.use("/api/email-automation", emailAutomationRoutes);
 app.use("/api/account", accountDeletionRoutes);
 app.use('/logout', logoutRoute);
+
+app.use("/api/payment", payment)
 
 
 const port: number = Number(process.env.PORT) || 5000;

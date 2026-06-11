@@ -16,6 +16,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@paypal/checkout-server-sdk": "^1.0.3",
     "@prisma/client": "^4.16.2",
     "@types/supertest": "^7.2.0",
     "axios": "^1.16.1",
@@ -51,6 +52,7 @@
     "@types/passport": "^1.0.17",
     "@types/passport-github2": "^1.2.9",
     "@types/passport-google-oauth20": "^2.0.17",
+    "@types/paypal__checkout-server-sdk": "^1.0.8",
     "jest": "^30.4.2",
     "nodemon": "^3.1.14",
     "prisma": "^4.16.2",
