@@ -83,8 +83,15 @@ export const createSubscription = async (req: Request, res: Response) => {
         });
 
         const response = await paypalClient.execute(request);
+        const links: any[] = response.result?.links ?? [];
+        const approvalUrl = links.find((l: any) => l.rel === 'approve')?.href ?? null;
 
-        return res.status(200).json({ id: response.result?.id ?? null, status: response.result?.status ?? 'created' });
+        return res.status(200).json({
+            id: response.result?.id ?? null,
+            status: response.result?.status ?? 'created',
+            approvalUrl,
+            links,
+        });
     } catch (error) {
         console.error('PayPal subscription creation failed:', error);
         return res.status(500).json({ message: 'Payment creation failed' });
@@ -112,10 +119,17 @@ export const paymentSuccess = async (req: Request, res: Response) => {
 
         const updatedSubscription = await updateSubscription(userID, normalizedPlan, normalizedBillingCycle);
 
+        // Fetch the latest transaction for this user to get its ID/transactionId for receipt download
+        const latestTx = await prisma.subscriptionhistory.findFirst({
+            where: { userId: userID },
+            orderBy: { createdAt: 'desc' },
+        });
+
         return res.status(200).json({
             success: true,
             subscriptionId,
             subscription: updatedSubscription,
+            transactionId: latestTx?.transactionId || latestTx?.id,
         });
     } catch (error) {
         console.error('Payment success handling failed:', error);

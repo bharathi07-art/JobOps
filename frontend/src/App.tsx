@@ -21,6 +21,8 @@ import SettingsPage from './pages/dashboard/SettingsPage'
 import HelpCenterPage from './pages/dashboard/HelpCenterPage'
 import FeedbackPage from './pages/dashboard/FeedbackPage'
 import AIChatbot from './components/ui/AIChatbot'
+import SubscriptionManagement from './pages/SubscriptionManagement';
+import InvoicePage from './pages/dashboard/InvoicePage';
 // Admin
 import AdminOverview from './pages/admin/AdminOverview'
 import AdminAnalytics from './pages/admin/AdminAnalytics'
@@ -95,6 +97,8 @@ function App() {
           <Route path="/dashboard/settings" element={<RequireAuth><SettingsPage /></RequireAuth>} />
           <Route path="/pricing" element={<PricingPage />} />
           <Route path="/dashboard/help" element={<RequireAuth><HelpCenterPage /></RequireAuth>} />
+          <Route path="/dashboard/billing" element={<RequireAuth><SubscriptionManagement /></RequireAuth>} />
+          <Route path="/dashboard/invoice/:id" element={<RequireAuth><InvoicePage /></RequireAuth>} />
           {/* Admin */}
           <Route path="/admin" element={<AdminRequireAuth><AdminOverview /></AdminRequireAuth>} />
           <Route path="/admin/analytics" element={<AdminRequireAuth><AdminAnalytics /></AdminRequireAuth>} />

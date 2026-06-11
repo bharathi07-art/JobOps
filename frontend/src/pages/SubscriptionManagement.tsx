@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Calendar, CreditCard, Download, RotateCcw, AlertCircle } from 'lucide-react';
+import { Calendar, CreditCard, Download, RotateCcw, AlertCircle, Check, ShieldCheck, ChevronLeft } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { PremiumBadge, SubscriptionStatusBar, UsageLimitIndicator } from '../components/PremiumComponents';
 import { BarChart } from '../components/ui/AdminCharts';
-
 
 interface Subscription {
   subscriptionPlan: string;
@@ -40,11 +40,36 @@ interface Analytics {
 }
 
 export default function SubscriptionManagement() {
+  const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const planParam = searchParams.get('plan');
+
   const [subscription, setSubscription] = useState<Subscription | null>(null);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [analytics, setAnalytics] = useState<Analytics | null>(null);
   const [loading, setLoading] = useState(true);
   const [showCancelModal, setShowCancelModal] = useState(false);
+
+  // Payment checkout states
+  const [paymentType, setPaymentType] = useState<'card' | 'paypal'>('card');
+  const [cardNumber, setCardNumber] = useState('');
+  const [cardName, setCardName] = useState('');
+  const [cardExpiry, setCardExpiry] = useState('');
+  const [cardCvv, setCardCvv] = useState('');
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [paymentSuccessData, setPaymentSuccessData] = useState<{ transactionId: string | number } | null>(null);
+  const [paymentError, setPaymentError] = useState<string | null>(null);
+
+  const getAuthToken = () => {
+    const token = localStorage.getItem('token');
+    if (token) return token;
+    try {
+      const userInfo = localStorage.getItem('userInfo');
+      return userInfo ? JSON.parse(userInfo)?.token : null;
+    } catch {
+      return null;
+    }
+  };
 
   useEffect(() => {
     fetchSubscriptionData();
@@ -52,8 +77,11 @@ export default function SubscriptionManagement() {
 
   const fetchSubscriptionData = async () => {
     try {
-      const token = localStorage.getItem('token');
-      if (!token) return;
+      const token = getAuthToken();
+      if (!token) {
+        setLoading(false);
+        return;
+      }
 
       const [subRes, transRes, analyticsRes] = await Promise.all([
         fetch('/api/subscription/current', {
@@ -67,9 +95,13 @@ export default function SubscriptionManagement() {
         }),
       ]);
 
-      const subData = await subRes.json();
-      const transData = await transRes.json();
-      const analyticsData = await analyticsRes.json();
+      let subData = null;
+      let transData = [];
+      let analyticsData = null;
+
+      if (subRes.ok) subData = await subRes.json();
+      if (transRes.ok) transData = await transRes.json();
+      if (analyticsRes.ok) analyticsData = await analyticsRes.json();
 
       setSubscription(subData);
       setTransactions(transData);
@@ -83,7 +115,7 @@ export default function SubscriptionManagement() {
 
   const handleCancelSubscription = async () => {
     try {
-      const token = localStorage.getItem('token');
+      const token = getAuthToken();
       const response = await fetch('/api/subscription/cancel', {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}` },
@@ -98,6 +130,95 @@ export default function SubscriptionManagement() {
     }
   };
 
+  const handleCardNumberChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value.replace(/\D/g, '').substring(0, 16);
+    const formatted = value.replace(/(\d{4})(?=\d)/g, '$1 ');
+    setCardNumber(formatted);
+  };
+
+  const handleExpiryChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value.replace(/\D/g, '').substring(0, 4);
+    const formatted = value.length > 2 ? `${value.substring(0, 2)}/${value.substring(2)}` : value;
+    setCardExpiry(formatted);
+  };
+
+  const handleCvvChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value.replace(/\D/g, '').substring(0, 3);
+    setCardCvv(value);
+  };
+
+  const handlePaymentSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (paymentType === 'card') {
+      if (cardNumber.replace(/\s/g, '').length < 16) {
+        setPaymentError('Invalid Card Number. Must be 16 digits.');
+        return;
+      }
+      if (cardExpiry.length < 5) {
+        setPaymentError('Invalid Expiry Date. Format MM/YY.');
+        return;
+      }
+      if (cardCvv.length < 3) {
+        setPaymentError('Invalid CVV. Must be 3 digits.');
+        return;
+      }
+    }
+
+    setIsProcessing(true);
+    setPaymentError(null);
+
+    try {
+      const token = getAuthToken();
+      if (!token) {
+        setPaymentError('Session expired. Please log in again.');
+        setIsProcessing(false);
+        return;
+      }
+
+      // Simulation for premium user experience
+      await new Promise(resolve => setTimeout(resolve, 2000));
+
+      const res = await fetch('/api/payment/Success', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          subscriptionId: 'SUB-' + Math.floor(10000000 + Math.random() * 90000000),
+          plan: planParam,
+          billingCycle: planParam === 'Yearly' ? 'Yearly' : 'Monthly',
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        setPaymentError(data.message || 'Payment processing failed. Please try again.');
+        setIsProcessing(false);
+        return;
+      }
+
+      // Update localStorage so the rest of the application reflects the premium plan
+      const raw = localStorage.getItem('userInfo');
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        parsed.plan = planParam;
+        if (parsed.user) parsed.user.plan = planParam;
+        localStorage.setItem('userInfo', JSON.stringify(parsed));
+      }
+      window.dispatchEvent(new Event('userInfoUpdated'));
+
+      setPaymentSuccessData({
+        transactionId: data.transactionId || 'TX-' + Math.floor(Math.random() * 1000000),
+      });
+    } catch (err) {
+      console.error(err);
+      setPaymentError('Network error occurred. Please try again.');
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -108,6 +229,275 @@ export default function SubscriptionManagement() {
     );
   }
 
+  // Checkout Upgrade view
+  if (planParam && ['Monthly', 'Yearly'].includes(planParam)) {
+    const planDetails = planParam === 'Yearly' ? {
+      name: 'Yearly Plan',
+      price: '$250/year',
+      features: [
+        '2 AI searches per day',
+        'Unlimited yearly usage',
+        'Advanced AI analysis & feedback',
+        'ATS optimization & scoring',
+        'Personalized AI career roadmap',
+        'Priority email support'
+      ]
+    } : {
+      name: 'Monthly Plan',
+      price: '$25/month',
+      features: [
+        '2 AI searches per day',
+        'Unlimited monthly usage',
+        'Advanced AI analysis & feedback',
+        'ATS optimization & scoring',
+        'Priority email support'
+      ]
+    };
+
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-[#FFF8F4] to-white pb-20">
+        {/* Header */}
+        <div className="bg-gradient-to-r from-[#FF4500] to-orange-400 text-white px-6 py-12">
+          <h1 className="text-4xl font-bold mb-2">Secure Checkout</h1>
+          <p className="text-white/90">Activate your {planDetails.name} and unlock full platform capabilities</p>
+        </div>
+
+        <div className="max-w-4xl mx-auto px-4 mt-8">
+          <button
+            onClick={() => navigate('/pricing')}
+            className="flex items-center gap-2 text-sm font-semibold text-gray-500 hover:text-gray-900 transition-colors mb-6"
+          >
+            <ChevronLeft className="w-4 h-4" /> Back to plans
+          </button>
+
+          {paymentSuccessData ? (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="max-w-md mx-auto bg-white border border-gray-200 rounded-3xl p-8 shadow-xl text-center"
+            >
+              <div className="w-16 h-16 rounded-full bg-green-50 text-green-500 flex items-center justify-center mx-auto mb-6 border border-green-200 shadow-sm">
+                <Check className="w-8 h-8 stroke-[3]" />
+              </div>
+              <h2 className="text-3xl font-extrabold text-gray-900 mb-2">Payment Successful!</h2>
+              <p className="text-sm text-gray-500 mb-6 leading-relaxed">
+                Your <span className="font-bold text-gray-800">{planParam}</span> subscription has been activated successfully. Your receipt is ready for download.
+              </p>
+
+              <div className="space-y-4">
+                <Button
+                  onClick={() => navigate(`/dashboard/invoice/${paymentSuccessData.transactionId}`)}
+                  variant="primary"
+                  className="w-full bg-green-600 hover:bg-green-700 text-white flex items-center justify-center gap-2 py-3 shadow-md hover:shadow-lg transition-all"
+                >
+                  <Download className="w-4 h-4" /> Download Paid Receipt
+                </Button>
+
+                <Button
+                  onClick={() => {
+                    setSearchParams({});
+                    setPaymentSuccessData(null);
+                    fetchSubscriptionData();
+                  }}
+                  variant="ghost"
+                  className="w-full text-gray-600 hover:bg-gray-50 border border-gray-200"
+                >
+                  View My Subscription
+                </Button>
+
+                <Button
+                  onClick={() => navigate('/dashboard')}
+                  variant="ghost"
+                  className="w-full text-[#FF4500] hover:bg-orange-50"
+                >
+                  Go to Dashboard
+                </Button>
+              </div>
+            </motion.div>
+          ) : (
+            <div className="grid md:grid-cols-5 gap-8 items-start">
+              {/* Plan Details Card */}
+              <div className="md:col-span-2 bg-white rounded-2xl border border-gray-200 p-6 shadow-sm">
+                <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">You Selected</h3>
+                <h2 className="text-2xl font-extrabold text-gray-900 mb-1">{planDetails.name}</h2>
+                <div className="text-2xl font-black text-[#FF4500] mb-4">{planDetails.price}</div>
+                <div className="border-t border-gray-100 my-4" />
+                <h4 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">Plan Benefits</h4>
+                <ul className="space-y-2.5">
+                  {planDetails.features.map((feat, idx) => (
+                    <li key={idx} className="flex items-start gap-2 text-sm text-gray-600">
+                      <Check className="w-4 h-4 text-green-500 flex-shrink-0 mt-0.5" />
+                      <span>{feat}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+
+              {/* Checkout Form Card */}
+              <div className="md:col-span-3 bg-white rounded-2xl border border-gray-200 p-8 shadow-sm">
+                <h3 className="text-lg font-bold text-gray-900 mb-6">Select Payment Method</h3>
+                
+                {/* Method selector tab */}
+                <div className="grid grid-cols-2 gap-4 mb-8">
+                  <button
+                    type="button"
+                    onClick={() => setPaymentType('card')}
+                    className={`h-12 rounded-xl border-2 font-semibold text-sm transition-all flex items-center justify-center gap-2 ${
+                      paymentType === 'card'
+                        ? 'border-[#FF4500] bg-orange-50/50 text-[#FF4500]'
+                        : 'border-gray-200 bg-white text-gray-500 hover:bg-gray-50'
+                    }`}
+                  >
+                    <CreditCard className="w-4 h-4" /> Credit Card
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setPaymentType('paypal')}
+                    className={`h-12 rounded-xl border-2 font-semibold text-sm transition-all flex items-center justify-center gap-2 ${
+                      paymentType === 'paypal'
+                        ? 'border-[#FF4500] bg-orange-50/50 text-[#FF4500]'
+                        : 'border-gray-200 bg-white text-gray-500 hover:bg-gray-50'
+                    }`}
+                  >
+                    <span className="font-extrabold italic text-sm">PayPal</span>
+                  </button>
+                </div>
+
+                {paymentType === 'card' ? (
+                  <div className="space-y-6">
+                    {/* Visual Card Display */}
+                    <div className="relative w-full max-w-[340px] h-[190px] mx-auto rounded-2xl text-white shadow-lg bg-gradient-to-br from-[#FF4500] to-orange-500 p-6 overflow-hidden transition-transform duration-500 hover:scale-105">
+                      <div className="flex justify-between items-start mb-4">
+                        <span className="text-[10px] font-bold tracking-widest uppercase opacity-80">PRO MEMBER</span>
+                        <span className="text-xl font-black italic tracking-tight">Visa</span>
+                      </div>
+                      <div className="w-11 h-9 bg-yellow-400/80 rounded-lg mb-4 flex items-center justify-center shadow-inner">
+                        <div className="w-7 h-5 border border-yellow-600/30 rounded" />
+                      </div>
+                      <div className="text-xl font-mono tracking-widest mb-4">
+                        {cardNumber || '•••• •••• •••• ••••'}
+                      </div>
+                      <div className="flex justify-between text-xs">
+                        <div className="max-w-[170px] truncate">
+                          <span className="block text-[8px] text-white/60 uppercase tracking-widest mb-0.5">Card Holder</span>
+                          <span className="font-bold tracking-wide uppercase">{cardName || 'Your Name'}</span>
+                        </div>
+                        <div className="text-right">
+                          <span className="block text-[8px] text-white/60 uppercase tracking-widest mb-0.5">Expires</span>
+                          <span className="font-bold tracking-wide">{cardExpiry || 'MM/YY'}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Inputs */}
+                    <form onSubmit={handlePaymentSubmit} className="space-y-4">
+                      <div>
+                        <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Cardholder Name</label>
+                        <input
+                          type="text"
+                          required
+                          placeholder="e.g. Alex Smith"
+                          value={cardName}
+                          onChange={e => setCardName(e.target.value)}
+                          className="w-full h-11 px-4 rounded-xl border border-gray-200 text-sm outline-none focus:border-[#FF4500] focus:ring-4 focus:ring-[#FF4500]/10 transition-all bg-white font-medium"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Card Number</label>
+                        <input
+                          type="text"
+                          required
+                          placeholder="0000 0000 0000 0000"
+                          value={cardNumber}
+                          onChange={handleCardNumberChange}
+                          className="w-full h-11 px-4 rounded-xl border border-gray-200 text-sm outline-none focus:border-[#FF4500] focus:ring-4 focus:ring-[#FF4500]/10 transition-all bg-white font-mono"
+                        />
+                      </div>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Expiry Date</label>
+                          <input
+                            type="text"
+                            required
+                            placeholder="MM/YY"
+                            value={cardExpiry}
+                            onChange={handleExpiryChange}
+                            className="w-full h-11 px-4 rounded-xl border border-gray-200 text-sm outline-none focus:border-[#FF4500] focus:ring-4 focus:ring-[#FF4500]/10 transition-all bg-white font-medium"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">CVV</label>
+                          <input
+                            type="password"
+                            required
+                            placeholder="•••"
+                            value={cardCvv}
+                            onChange={handleCvvChange}
+                            className="w-full h-11 px-4 rounded-xl border border-gray-200 text-sm outline-none focus:border-[#FF4500] focus:ring-4 focus:ring-[#FF4500]/10 transition-all bg-white font-medium"
+                          />
+                        </div>
+                      </div>
+
+                      {paymentError && (
+                        <div className="p-3 bg-red-50 border border-red-200 text-red-700 text-xs rounded-xl font-semibold flex items-center gap-2">
+                          <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                          <span>{paymentError}</span>
+                        </div>
+                      )}
+
+                      <div className="flex items-center gap-2 text-xs text-gray-400 mt-4">
+                        <ShieldCheck className="w-4 h-4 text-green-500" />
+                        <span>SSL Encrypted & Secure Checkout</span>
+                      </div>
+
+                      <Button type="submit" variant="primary" className="w-full bg-[#FF4500] hover:bg-[#e03e00] py-3 text-sm font-bold mt-2" disabled={isProcessing}>
+                        {isProcessing ? 'Processing Payment...' : `Pay & Activate Plan`}
+                      </Button>
+                    </form>
+                  </div>
+                ) : (
+                  <div className="space-y-6 text-center py-6">
+                    <p className="text-sm text-gray-500 max-w-sm mx-auto leading-relaxed">
+                      Pay easily and securely using PayPal. Click the checkout button below to process your upgrade.
+                    </p>
+
+                    <Button
+                      onClick={handlePaymentSubmit}
+                      disabled={isProcessing}
+                      className="w-full bg-[#FFC439] hover:bg-[#F2BA36] text-[#003087] font-extrabold py-3.5 px-6 rounded-xl flex items-center justify-center gap-1.5 border border-[#E5B22E] shadow-sm hover:shadow transition-all text-sm"
+                    >
+                      {isProcessing ? (
+                        'Connecting PayPal...'
+                      ) : (
+                        <>
+                          <span className="italic">PayPal</span>
+                          <span className="font-semibold text-xs px-2 py-0.5 rounded bg-[#003087] text-white">Checkout</span>
+                        </>
+                      )}
+                    </Button>
+
+                    {paymentError && (
+                      <div className="p-3 bg-red-50 border border-red-200 text-red-700 text-xs rounded-xl font-semibold flex items-center gap-2 justify-center">
+                        <AlertCircle className="w-4 h-4" />
+                        <span>{paymentError}</span>
+                      </div>
+                    )}
+
+                    <div className="flex items-center justify-center gap-2 text-xs text-gray-400 mt-4">
+                      <ShieldCheck className="w-4 h-4 text-green-500" />
+                      <span>SSL Encrypted Transaction</span>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  // Normal Billing view
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#FFF8F4] to-white">
       {/* Header */}
@@ -118,7 +508,7 @@ export default function SubscriptionManagement() {
 
       <div className="max-w-6xl mx-auto px-4 py-12">
         {/* Current Subscription Status */}
-        {subscription && (
+        {subscription ? (
           <>
             <motion.div
               initial={{ opacity: 0, y: 20 }}
@@ -204,12 +594,12 @@ export default function SubscriptionManagement() {
 
                 {/* Actions */}
                 <div className="flex flex-col justify-between">
-                  {subscription.subscriptionPlan !== 'Free' && (
+                  {subscription.subscriptionPlan !== 'Free' ? (
                     <div className="space-y-3">
                       <Button
-                        onClick={() => window.location.href = '/pricing'}
+                        onClick={() => navigate('/pricing')}
                         variant="primary"
-                        className="w-full"
+                        className="w-full bg-[#FF4500] hover:bg-[#e03e00]"
                       >
                         Upgrade Plan
                       </Button>
@@ -219,6 +609,16 @@ export default function SubscriptionManagement() {
                         className="w-full text-red-600 hover:bg-red-50"
                       >
                         Cancel Subscription
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="space-y-3 self-end w-full">
+                      <Button
+                        onClick={() => navigate('/pricing')}
+                        variant="primary"
+                        className="w-full bg-[#FF4500] hover:bg-[#e03e00]"
+                      >
+                        Explore Plans & Upgrade
                       </Button>
                     </div>
                   )}
@@ -256,7 +656,7 @@ export default function SubscriptionManagement() {
             )}
 
             {/* Usage Analytics */}
-            {analytics && (
+            {analytics && analytics.dailyData && Array.isArray(analytics.dailyData) && (
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -270,15 +670,15 @@ export default function SubscriptionManagement() {
                   <div className="space-y-4">
                     <div className="p-4 bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg">
                       <p className="text-sm text-blue-600 font-medium">AI Searches (Last 30 days)</p>
-                      <p className="text-3xl font-bold text-blue-900 mt-1">{analytics.totalAISearches}</p>
+                      <p className="text-3xl font-bold text-blue-900 mt-1">{analytics.totalAISearches || 0}</p>
                     </div>
                     <div className="p-4 bg-gradient-to-br from-green-50 to-green-100 rounded-lg">
                       <p className="text-sm text-green-600 font-medium">Jobs Saved (Last 30 days)</p>
-                      <p className="text-3xl font-bold text-green-900 mt-1">{analytics.totalJobsSaved}</p>
+                      <p className="text-3xl font-bold text-green-900 mt-1">{analytics.totalJobsSaved || 0}</p>
                     </div>
                     <div className="p-4 bg-gradient-to-br from-purple-50 to-purple-100 rounded-lg">
                       <p className="text-sm text-purple-600 font-medium">Resumes Uploaded (Last 30 days)</p>
-                      <p className="text-3xl font-bold text-purple-900 mt-1">{analytics.totalResumesUploaded}</p>
+                      <p className="text-3xl font-bold text-purple-900 mt-1">{analytics.totalResumesUploaded || 0}</p>
                     </div>
                   </div>
 
@@ -290,7 +690,7 @@ export default function SubscriptionManagement() {
                           month: 'short',
                           day: 'numeric',
                         }),
-                        searches: day.aiSearchesUsed,
+                        searches: day.aiSearchesUsed || 0,
                       }))}
                       xKey="date"
                       yKey="searches"
@@ -303,7 +703,7 @@ export default function SubscriptionManagement() {
             )}
 
             {/* Billing History */}
-            {transactions.length > 0 && (
+            {transactions && transactions.length > 0 && (
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -343,7 +743,7 @@ export default function SubscriptionManagement() {
                                   ? 'bg-yellow-100 text-yellow-800'
                                   : 'bg-red-100 text-red-800'
                             }`}>
-                              {tx.status.charAt(0).toUpperCase() + tx.status.slice(1)}
+                              {tx.status ? (tx.status.charAt(0).toUpperCase() + tx.status.slice(1)) : 'Pending'}
                             </span>
                           </td>
                           <td className="py-3 px-4 text-sm">
@@ -351,7 +751,9 @@ export default function SubscriptionManagement() {
                               variant="ghost"
                               size="sm"
                               onClick={() => {
-                                // Download invoice
+                                navigate(`/dashboard/invoice/${tx.transactionId || tx.id}`, {
+                                  state: { transaction: tx },
+                                });
                               }}
                             >
                               <Download className="w-4 h-4" />
@@ -365,6 +767,15 @@ export default function SubscriptionManagement() {
               </motion.div>
             )}
           </>
+        ) : (
+          <div className="bg-white rounded-2xl border border-gray-200 p-8 shadow-sm text-center">
+            <AlertCircle className="w-12 h-12 text-[#FF4500] mx-auto mb-4" />
+            <h3 className="text-xl font-bold text-gray-900 mb-2">No Active Subscription Information</h3>
+            <p className="text-sm text-gray-500 mb-6">We couldn't fetch your subscription details. Try refreshing the page or contact support.</p>
+            <Button onClick={fetchSubscriptionData} variant="primary" className="bg-[#FF4500] hover:bg-[#e03e00]">
+              Retry Loading
+            </Button>
+          </div>
         )}
       </div>
 

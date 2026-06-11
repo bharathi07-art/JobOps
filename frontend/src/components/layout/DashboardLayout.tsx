@@ -3,8 +3,8 @@ import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   LayoutDashboard, FileText, Sparkles, Send, Bookmark,
-  BarChart2, Settings, User, LogOut, Menu, X, Bell, Search, ChevronDown
-  , MessageCircle
+  BarChart2, Settings, User, LogOut, Menu, X, Bell, Search, ChevronDown,
+  MessageCircle, CreditCard
 } from 'lucide-react'
 import { cn } from '../../utils/utils'
 import { mockNotifications } from '../../data/mockData'
@@ -45,6 +45,7 @@ const navItems = [
   { to: '/dashboard/saved', label: 'Saved Jobs', icon: Bookmark },
   { to: '/dashboard/analytics', label: 'Analytics', icon: BarChart2 },
   { to: '/dashboard/feedback', label: 'Send Feedback', icon: MessageCircle },
+  { to: '/dashboard/billing', label: 'Billing & Plans', icon: CreditCard },
   { to: '/dashboard/settings', label: 'Settings', icon: Settings },
   { to: '/dashboard/help', label: 'Help Center', icon: LayoutDashboard },
 ]

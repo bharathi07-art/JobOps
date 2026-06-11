@@ -26,7 +26,7 @@ export default function UsageBanner() {
           <p className="text-orange-700">You are currently using the Free plan. Upgrade to Pro for unlimited access.</p>
         </div>
         <Link 
-          to="/dashboard/settings" 
+          to="/pricing" 
           className="mt-4 md:mt-0 px-6 py-2 bg-gradient-to-r from-[#FF4500] to-orange-500 text-white rounded-lg font-medium shadow-md hover:shadow-lg transition-all"
         >
           Upgrade to Pro

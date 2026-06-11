@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import { Check, Zap, Crown, Star } from 'lucide-react';
+import { Check, Crown, Star, Loader2 } from 'lucide-react';
 import { Button } from '../components/ui/Button';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 
 const PLANS = [
   {
@@ -70,7 +70,10 @@ const PLANS = [
 ];
 
 export default function PricingPage() {
+  const navigate = useNavigate();
   const [currentPlan, setCurrentPlan] = useState<string>('Free');
+  const [subscribing, setSubscribing] = useState<string | null>(null);
+  const [message, setMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
 
   useEffect(() => {
     try {
@@ -89,7 +92,16 @@ export default function PricingPage() {
   }, []);
 
   const handleUpgrade = (planId: string) => {
-    console.log('Upgrading to:', planId);
+    if (planId === currentPlan) return;
+    
+    const raw = localStorage.getItem('userInfo');
+    const token = raw ? JSON.parse(raw)?.token : null;
+    if (!token) {
+      setMessage({ text: 'Please log in to upgrade your plan.', type: 'error' });
+      return;
+    }
+
+    navigate(`/dashboard/billing?plan=${planId}`);
   };
 
   return (
@@ -109,11 +121,29 @@ export default function PricingPage() {
         </p>
       </motion.div>
 
+      {/* Toast / Status message */}
+      {message && (
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className={`max-w-xl mx-auto px-4 mb-6`}
+        >
+          <div className={`rounded-xl px-5 py-4 text-sm font-medium border ${
+            message.type === 'success'
+              ? 'bg-green-50 text-green-800 border-green-200'
+              : 'bg-red-50 text-red-800 border-red-200'
+          }`}>
+            {message.text}
+          </div>
+        </motion.div>
+      )}
+
       {/* Cards */}
       <div className="max-w-6xl mx-auto px-4 pb-20">
         <div className="grid md:grid-cols-3 gap-8 items-start">
           {PLANS.map((plan, index) => {
             const isCurrentPlan = plan.id === currentPlan;
+            const isLoading = subscribing === plan.id;
 
             return (
               <motion.div
@@ -187,13 +217,22 @@ export default function PricingPage() {
                     </Link>
                   ) : (
                     <Button
+                      id={`upgrade-btn-${plan.id.toLowerCase()}`}
                       onClick={() => handleUpgrade(plan.id)}
                       variant={isCurrentPlan ? 'secondary' : 'primary'}
                       size="lg"
-                      className="w-full mb-8"
-                      disabled={isCurrentPlan}
+                      className={`w-full mb-8 flex items-center justify-center gap-2 ${
+                        isCurrentPlan ? '' : 'bg-[#FF4500] hover:bg-[#e03e00] text-white'
+                      }`}
+                      disabled={isCurrentPlan || !!subscribing}
                     >
-                      {isCurrentPlan ? 'Current Plan' : 'Upgrade Now'}
+                      {isLoading ? (
+                        <><Loader2 className="w-4 h-4 animate-spin" /> Upgrading...</>
+                      ) : isCurrentPlan ? (
+                        'Current Plan'
+                      ) : (
+                        'Upgrade Now'
+                      )}
                     </Button>
                   )}
 

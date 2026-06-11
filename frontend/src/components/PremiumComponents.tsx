@@ -1,9 +1,10 @@
 
+import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Crown, Lock } from 'lucide-react';
-import { useUpgradePrompt } from '../hooks/useUpgradePrompt';
+
 import { UpgradeModal } from './UpgradeModal';
-import { Button } from '../ui';
+import { Button } from './ui/Button';
 
 interface PremiumBadgeProps {
   plan: string;
@@ -158,7 +159,7 @@ export function LockedFeatureIndicator({
   featureName: string;
   requiredPlan?: string;
 }) {
-  const { showUpgradeModal } = useUpgradePrompt({ featureName });
+  const [isOpen, setIsOpen] = useState(false);
 
   return (
     <>
@@ -176,17 +177,17 @@ export function LockedFeatureIndicator({
             <p className="text-xs text-gray-600">Premium feature</p>
           </div>
           <div className="mt-3">
-            <Button onClick={() => showUpgradeModal('feature-locked', featureName)} size="sm">Upgrade</Button>
+            <Button onClick={() => setIsOpen(true)} size="sm">Upgrade</Button>
           </div>
         </div>
       </motion.div>
 
       <UpgradeModal
-        isOpen={isUpgradeModalOpen}
-        onClose={closeUpgradeModal}
-        reason={upgradeInfo.reason as any}
-        featureName={upgradeInfo.featureName}
-        message={upgradeInfo.message}
+        isOpen={isOpen}
+        onClose={() => setIsOpen(false)}
+        reason="feature-locked"
+        featureName={featureName}
+        message={`Unlock ${featureName} by upgrading to a premium plan.`}
       />
     </>
   );
