@@ -119,7 +119,7 @@ export const submitRecoveryRequest = async (req: AuthRequest, res: Response): Pr
     }
 
     // Check for duplicate requests
-    const existingRequest = await (prisma as any).accountRecoveryRequest.findFirst({
+    const existingRequest = await (prisma as any).accountrecoveryrequest.findFirst({
       where: {
         userId: user.id,
         status: 'Pending',
@@ -132,7 +132,7 @@ export const submitRecoveryRequest = async (req: AuthRequest, res: Response): Pr
     }
 
     // Create recovery request
-    const recoveryRequest = await (prisma as any).accountRecoveryRequest.create({
+    const recoveryRequest = await (prisma as any).accountrecoveryrequest.create({
       data: {
         userId: user.id,
         email: email,
@@ -236,14 +236,14 @@ export const getRecoveryRequests = async (req: AuthRequest, res: Response): Prom
       where.status = String(status);
     }
 
-    const requests = await (prisma as any).accountRecoveryRequest.findMany({
+    const requests = await (prisma as any).accountrecoveryrequest.findMany({
       where,
       orderBy: { createdAt: 'desc' },
       take: Number(limit),
       skip: Number(offset),
     });
 
-    const total = await (prisma as any).accountRecoveryRequest.count({ where });
+    const total = await (prisma as any).accountrecoveryrequest.count({ where });
 
     res.status(200).json({
       requests,
@@ -271,7 +271,7 @@ export const approveRecoveryRequest = async (req: AuthRequest, res: Response): P
       return;
     }
 
-    const request = await (prisma as any).accountRecoveryRequest.findUnique({
+    const request = await (prisma as any).accountrecoveryrequest.findUnique({
       where: { id: Number(requestId) },
     });
 
@@ -286,7 +286,7 @@ export const approveRecoveryRequest = async (req: AuthRequest, res: Response): P
     }
 
     // Update request status
-    await (prisma as any).accountRecoveryRequest.update({
+    await (prisma as any).accountrecoveryrequest.update({
       where: { id: Number(requestId) },
       data: {
         status: 'Approved',
@@ -348,7 +348,7 @@ export const rejectRecoveryRequest = async (req: AuthRequest, res: Response): Pr
       return;
     }
 
-    const request = await (prisma as any).accountRecoveryRequest.findUnique({
+    const request = await (prisma as any).accountrecoveryrequest.findUnique({
       where: { id: Number(requestId) },
     });
 
@@ -363,7 +363,7 @@ export const rejectRecoveryRequest = async (req: AuthRequest, res: Response): Pr
     }
 
     // Update request status
-    await (prisma as any).accountRecoveryRequest.update({
+    await (prisma as any).accountrecoveryrequest.update({
       where: { id: Number(requestId) },
       data: {
         status: 'Rejected',
