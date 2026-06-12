@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import HomePage from './pages/HomePage'
 import Login from './componenets/Login'
@@ -72,6 +73,11 @@ function RequireAuth({ children }: { children: React.ReactNode }) {
 }
 
 function App() {
+  useEffect(() => {
+    const isDark = localStorage.getItem('theme') === 'dark'
+    document.documentElement.classList.toggle('dark', isDark)
+  }, [])
+
   return (
     <SubscriptionProvider>
       <BrowserRouter>

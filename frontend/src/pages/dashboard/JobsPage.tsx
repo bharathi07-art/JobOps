@@ -3,7 +3,9 @@ import { useState, useEffect, useRef } from 'react';
 import { UpgradeBanner } from '../../utils/UpgradeBanner';
 import { motion, AnimatePresence } from 'framer-motion'
 import { Search, Filter, MapPin, Briefcase, Sparkles, TrendingUp, AlertCircle, ExternalLink, Bookmark, BookmarkCheck, X, CheckCircle2, Clock, BookmarkPlus } from 'lucide-react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom'
+
+
 import { DashboardLayout } from '../../components/layout/DashboardLayout';
 import { cn } from '../../utils/utils';
 import { formatRelative, formatAbsolute } from '../../utils/timeUtils';
@@ -33,8 +35,16 @@ interface AIResult {
 const matchFilters = ['All', 'High', 'Medium', 'Low']
 
 export default function JobsPage() {
-  const [search, setSearch] = useState('')
-  const [categoryFilter, setCategoryFilter] = useState('All')
+  const location = useLocation();
+  const querySearch = new URLSearchParams(location.search).get('search') ?? '';
+  const initialSearch = location.state?.searchTerm ?? querySearch;
+  const [search, setSearch] = useState(initialSearch);
+  const [categoryFilter, setCategoryFilter] = useState('All');
+  useEffect(() => {
+    // Update search when URL or state changes (e.g., after navigation)
+    const newSearch = location.state?.searchTerm ?? new URLSearchParams(location.search).get('search') ?? '';
+    setSearch(newSearch);
+  }, [location]);
   const [aiResult, setAiResult] = useState<AIResult | null>(null)
   const [loading, setLoading] = useState(true);
   const [upgradeInfo, setUpgradeInfo] = useState<{ message: string; requiredPlans: string[]; upgradeUrl: string } | null>(null);

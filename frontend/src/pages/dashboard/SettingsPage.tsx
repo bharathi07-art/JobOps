@@ -75,7 +75,9 @@ const defaultAvatars = [
 export default function SettingsPage() {
   const storedUser = getStoredUser()
   const [activeTab, setActiveTab] = useState('profile')
-  const [darkMode, setDarkMode] = useState(false)
+  const [darkMode, setDarkMode] = useState(() => {
+    return localStorage.getItem('theme') === 'dark' || document.documentElement.classList.contains('dark')
+  })
   const [saved, setSaved] = useState(false)
   const [name, setName]   = useState(storedUser.name)
   const [email, setEmail] = useState(storedUser.email)
@@ -325,15 +327,15 @@ export default function SettingsPage() {
     <DashboardLayout>
       <div className="max-w-3xl mx-auto space-y-6">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Settings</h1>
-          <p className="text-gray-500 mt-1">Manage your account preferences</p>
+          <h1 className="text-2xl font-bold text-foreground">Settings</h1>
+          <p className="text-muted-foreground mt-1">Manage your account preferences</p>
         </div>
 
-        <div className="flex gap-1 bg-gray-100 p-1 rounded-xl w-fit flex-wrap">
+        <div className="flex gap-1 bg-muted p-1 rounded-xl w-fit flex-wrap">
           {tabs.map(tab => (
             <button key={tab.id} onClick={() => setActiveTab(tab.id)}
               className={cn('flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all',
-                activeTab === tab.id ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700')}>
+                activeTab === tab.id ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground')}>
               <tab.icon className="w-4 h-4" />{tab.label}
             </button>
           ))}
@@ -356,8 +358,8 @@ export default function SettingsPage() {
                   </button>
                 </div>
                 <div>
-                  <p className="font-semibold text-gray-900">{name || 'Your Name'}</p>
-                  <p className="text-sm text-gray-400">{role || 'Your Role'}</p>
+                  <p className="font-semibold text-foreground">{name || 'Your Name'}</p>
+                  <p className="text-sm text-muted-foreground">{role || 'Your Role'}</p>
                   <button onClick={() => setShowAvatarPicker(true)}
                     className="text-xs text-[#FF4500] hover:underline mt-1 flex items-center gap-1">
                     <Camera className="w-3 h-3" /> Change avatar
@@ -437,22 +439,27 @@ export default function SettingsPage() {
                 <Input label="Location"   value={location} onChange={e => setLocation(e.target.value)} placeholder="San Francisco, CA" />
               </div>
               <div>
-                <label className="text-sm font-medium text-gray-700">Bio</label>
+                <label className="text-sm font-medium text-foreground/80">Bio</label>
                 <textarea rows={3} value={bio} onChange={e => setBio(e.target.value)}
                   placeholder="Tell employers about yourself..."
-                  className="mt-1.5 w-full px-3 py-2 rounded-lg border border-gray-200 text-sm outline-none focus:border-[#FF4500] focus:ring-2 focus:ring-[#FF4500]/10 resize-none" />
+                  className="mt-1.5 w-full px-3 py-2 rounded-lg border border-border bg-card text-foreground text-sm outline-none focus:border-[#FF4500] focus:ring-2 focus:ring-[#FF4500]/10 resize-none" />
               </div>
 
               {/* Theme Toggle */}
-              <div className="flex items-center justify-between p-4 bg-gray-50 rounded-xl">
+              <div className="flex items-center justify-between p-4 bg-muted rounded-xl">
                 <div className="flex items-center gap-3">
-                  {darkMode ? <Moon className="w-5 h-5 text-gray-600" /> : <Sun className="w-5 h-5 text-amber-500" />}
+                  {darkMode ? <Moon className="w-5 h-5 text-indigo-400" /> : <Sun className="w-5 h-5 text-amber-500" />}
                   <div>
-                    <p className="text-sm font-medium text-gray-900">Theme</p>
-                    <p className="text-xs text-gray-400">{darkMode ? 'Dark mode' : 'Light mode'}</p>
+                    <p className="text-sm font-medium text-foreground">Theme</p>
+                    <p className="text-xs text-muted-foreground">{darkMode ? 'Dark mode' : 'Light mode'}</p>
                   </div>
                 </div>
-                <button onClick={() => setDarkMode(!darkMode)}
+                <button onClick={() => {
+                  const nextDark = !darkMode
+                  setDarkMode(nextDark)
+                  localStorage.setItem('theme', nextDark ? 'dark' : 'light')
+                  document.documentElement.classList.toggle('dark', nextDark)
+                }}
                   className={cn('relative w-11 h-6 rounded-full transition-colors', darkMode ? 'bg-[#FF4500]' : 'bg-gray-200')}>
                   <span className={cn('absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform', darkMode && 'translate-x-5')} />
                 </button>
@@ -691,10 +698,10 @@ export default function SettingsPage() {
 function NotificationToggle({ label, desc, defaultOn }: { label: string; desc: string; defaultOn: boolean }) {
   const [on, setOn] = useState(defaultOn)
   return (
-    <div className="flex items-center justify-between py-3 border-b border-gray-50 last:border-0">
+    <div className="flex items-center justify-between py-3 border-b border-border last:border-0">
       <div>
-        <p className="text-sm font-medium text-gray-900">{label}</p>
-        <p className="text-xs text-gray-400">{desc}</p>
+        <p className="text-sm font-medium text-foreground">{label}</p>
+        <p className="text-xs text-muted-foreground">{desc}</p>
       </div>
       <button onClick={() => setOn(!on)} className={cn('relative w-11 h-6 rounded-full transition-colors', on ? 'bg-[#FF4500]' : 'bg-gray-200')}>
         <span className={cn('absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform', on && 'translate-x-5')} />

@@ -143,6 +143,12 @@ export const login = async (req: Request, res: Response): Promise<Response> => {
       });
     }
 
+    if (user.isDeletionScheduled) {
+      return res.status(403).json({
+        message: "This account is scheduled for deletion. Please contact support to recover it."
+      });
+    }
+
     const isMatch = await bcrypt.compare(password, user.password);
 
     if (!isMatch) {
