@@ -146,7 +146,7 @@ export const submitRecoveryRequest = async (req: AuthRequest, res: Response): Pr
     });
 
     // Create admin notification
-    await (prisma as any).adminNotification.create({
+    await (prisma as any).adminnotification.create({
       data: {
         title: 'New Account Recovery Request',
         message: `User ${email} has requested account recovery. Review deadline: ${user.recoveryDeadlineDate.toLocaleDateString()}`,
@@ -322,7 +322,7 @@ export const approveRecoveryRequest = async (req: AuthRequest, res: Response): P
     });
 
     // Update admin notification
-    await (prisma as any).adminNotification.updateMany({
+    await (prisma as any).adminnotification.updateMany({
       where: { relatedRequestId: Number(requestId) },
       data: { isRead: true },
     });
@@ -386,7 +386,7 @@ export const rejectRecoveryRequest = async (req: AuthRequest, res: Response): Pr
     });
 
     // Update admin notification
-    await (prisma as any).adminNotification.updateMany({
+    await (prisma as any).adminnotification.updateMany({
       where: { relatedRequestId: Number(requestId) },
       data: { isRead: true },
     });
