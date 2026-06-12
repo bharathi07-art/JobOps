@@ -149,7 +149,7 @@ export default function AnalyticsPage() {
           setApiUpgradeInfo({
             message: err.response?.data?.message || 'Upgrade required',
             requiredPlans: err.response?.data?.requiredPlans || [],
-            upgradeUrl: err.response?.data?.upgradeUrl || '/dashboard/pricing',
+            upgradeUrl: err.response?.data?.upgradeUrl || '/dashboard/billing',
           });
         } else {
           console.error('Failed to fetch analytics data', err);
@@ -186,7 +186,7 @@ export default function AnalyticsPage() {
           <UpgradeBanner
             message={apiUpgradeInfo?.message || 'Upgrade required to access analytics'}
             requiredPlans={apiUpgradeInfo?.requiredPlans || []}
-            upgradeUrl={apiUpgradeInfo?.upgradeUrl || '/dashboard/pricing'}
+            upgradeUrl={apiUpgradeInfo?.upgradeUrl || '/pricing'}
           />
         </DashboardLayout>
       );
