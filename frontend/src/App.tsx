@@ -1,4 +1,5 @@
-import { useEffect } from 'react'
+import { useBfcacheHandler } from './hooks/useBfcacheHandler';
+import { useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import HomePage from './pages/HomePage'
 import Login from './componenets/Login'
@@ -55,28 +56,48 @@ function AdminRequireAuth({ children }: { children: React.ReactNode }) {
 
 // ── User guard — blocks admin from accessing user dashboard ───────────────────
 function RequireAuth({ children }: { children: React.ReactNode }) {
-  const { loading } = useSubscription()
-  const userInfo = parseUserInfo()
+  const { loading } = useSubscription();
+  const userInfo = parseUserInfo();
 
-  if (userInfo?.isAdmin) return <Navigate to="/admin" replace />
+  // If not authenticated, redirect to login immediately
+  if (!userInfo) {
+    return <Navigate to="/login" replace />;
+  }
 
+  // While checking subscription loading state, show spinner
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#FFF8F4]">
         <div className="w-8 h-8 border-4 border-orange-100 border-t-[#FF4500] rounded-full animate-spin" />
       </div>
-    )
+    );
   }
 
-  if (!userInfo) return <Navigate to="/login" replace />
-  return <>{children}</>
-}
+  // If admin, forward to admin area
+  if (userInfo.isAdmin) {
+    return <Navigate to="/admin" replace />;
+  }
+
+  // Authenticated regular user – render children
+  return <>{children}</>;
+};
 
 function App() {
+  // Apply bfcache guard and theme handling before any routing renders
+  useBfcacheHandler();
   useEffect(() => {
-    const isDark = localStorage.getItem('theme') === 'dark'
-    document.documentElement.classList.toggle('dark', isDark)
-  }, [])
+    const isDark = localStorage.getItem('theme') === 'dark';
+    document.documentElement.classList.toggle('dark', isDark);
+  }, []);
+  // Prevent bfcache by adding unload listener
+  useEffect(() => {
+    window.addEventListener('pageshow', function(event) {
+  // Check for stored user info rather than token only
+  if (event.persisted && !localStorage.getItem('userInfo')) {
+    window.location.replace('/login');
+  }
+});
+  }, []);
 
   return (
     <SubscriptionProvider>

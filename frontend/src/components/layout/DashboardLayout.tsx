@@ -7,6 +7,7 @@ import {
   MessageCircle, CreditCard
 } from 'lucide-react'
 import { cn } from '../../utils/utils'
+import { useBfcacheHandler } from '../../hooks/useBfcacheHandler';
 import { mockNotifications } from '../../data/mockData'
 
 function parseUser() {
@@ -231,6 +232,7 @@ function Topbar({ onMenuClick }: { onMenuClick: () => void }) {
 
 export function DashboardLayout({ children }: { children: React.ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  useBfcacheHandler();
 
   return (
     <div className="flex h-screen bg-background text-foreground overflow-hidden">
