@@ -8,7 +8,21 @@ import { getUserSubscription, updateSubscription } from '../services/subscriptio
 import dotenv from 'dotenv';
 import { json } from "node:stream/consumers";
 dotenv.config();
-const JWT_SECRET = process.env.JWT_SECRET as string
+const JWT_SECRET = process.env.JWT_SECRET as string;
+
+// Helper to set authentication cookies securely
+const setAuthCookie = (res: Response, token: string, isAdmin: boolean) => {
+  const cookieName = isAdmin ? 'admin_token' : 'token';
+  const isProduction = process.env.NODE_ENV === 'production';
+  const options = {
+    httpOnly: true,
+    secure: isProduction,
+    sameSite: 'strict' as const,
+    path: '/',
+    maxAge: 30 * 24 * 60 * 60 * 1000,
+  };
+  res.cookie(cookieName, token, options);
+};
 
 export const validatePasswordChangePayload = (
   currentPassword: string,
@@ -131,6 +145,24 @@ export const register = async (req:Request, res:Response):Promise<void>=>{
         Login
 ===============================*/
 
+export const protectAdminRoute = (req: Request, res: Response, next: Function) => {
+  const token = req.cookies?.admin_token ?? req.cookies?.token;
+  if (!token) {
+    return res.status(401).json({ message: 'Unauthorized' });
+  }
+  try {
+    const payload = jwt.verify(token, JWT_SECRET) as any;
+    if (!payload.isAdmin) {
+      return res.status(403).json({ message: 'Admin access required' });
+    }
+    // attach user info to request for downstream handlers
+    (req as any).user = { id: payload.id, isAdmin: payload.isAdmin };
+    next();
+  } catch (err) {
+    return res.status(401).json({ message: 'Invalid token' });
+  }
+};
+
 export const login = async (req: Request, res: Response): Promise<Response> => {
   try {
     const {email, password } = req.body;
@@ -164,12 +196,8 @@ export const login = async (req: Request, res: Response): Promise<Response> => {
           { expiresIn: "30d" },
         );
     //store in cookies
-    res.cookie("token",token,{
-      httpOnly:true,
-      secure:false,
-      sameSite:"lax",
-      maxAge:30 * 24 * 60 * 60 * 1000
-    });
+      setAuthCookie(res, token, user.isAdmin);
+
     const sub = await getUserSubscription(user.id);
 
     return res.status(200).json({
@@ -192,6 +220,36 @@ export const login = async (req: Request, res: Response): Promise<Response> => {
       message: err.message
     });
   }
+};
+
+export const logoutUser = async (req: Request, res: Response) => {
+  // Destroy session if present
+  if ((req as any).session) {
+    (req as any).session.destroy(() => {});
+  }
+  // Clear user token cookie
+  const isProduction = process.env.NODE_ENV === 'production';
+  res.clearCookie('token', {
+    httpOnly: true,
+    secure: isProduction,
+    sameSite: 'strict' as const,
+    path: '/',
+  });
+  return res.json({ message: 'Logged out successfully' });
+};
+
+export const logoutAdmin = async (req: Request, res: Response) => {
+  if ((req as any).session) {
+    (req as any).session.destroy(() => {});
+  }
+  const isProduction = process.env.NODE_ENV === 'production';
+  res.clearCookie('admin_token', {
+    httpOnly: true,
+    secure: isProduction,
+    sameSite: 'strict' as const,
+    path: '/',
+  });
+  return res.json({ message: 'Admin logged out successfully' });
 };
 
 export const getProfile = async (req: Request, res: Response): Promise<Response> => {
@@ -234,11 +292,7 @@ export const googleAuthCallback = async (req: Request, res: Response): Promise<v
       { expiresIn: "30d" }
     );
     //use cookies
-    res.cookie("token", token, {
-      httpOnly:true,
-      secure:false,
-      sameSite:"lax"
-    })
+    setAuthCookie(res, token, user.isAdmin);
 
     // Redirect to frontend with token and user info
     const hasPassword = user.password !== '';
@@ -265,12 +319,8 @@ export const githubAuthCallback = async (req: Request, res: Response): Promise<v
       { expiresIn: "30d" }
     );
 
-     //use cookies
-    res.cookie("token", token, {
-      httpOnly:true,
-      secure:false,
-      sameSite:"lax"
-    })
+      //use cookies
+      setAuthCookie(res, token, user.isAdmin);
 
     // Redirect to frontend with token and user info
     const hasPassword = user.password !== '';
