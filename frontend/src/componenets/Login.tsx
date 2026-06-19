@@ -7,7 +7,7 @@ import { Input } from '../components/ui/index'
 import { useSubscription } from '../contexts/SubscriptionContext'
 
 export default function Login() {
-  const [email, setEmail] = useState<string>()
+  const [email, setEmail] = useState<string>('')
   const [password, setPassword] = useState<string>('');
   const [showPass, setShowPass] = useState<boolean>(false)
   const [loading, setLoading] = useState<boolean>(false)
@@ -18,7 +18,7 @@ export default function Login() {
     e.preventDefault()
     setLoading(true)
     try{
-      const res =await fetch("/api/user/login",{
+      const res =await fetch("http://localhost:5000/api/user/login",{
         method: "POST",
         headers:{"Content-type": "application/json"},
         body: JSON.stringify({email: email, password:password}),
