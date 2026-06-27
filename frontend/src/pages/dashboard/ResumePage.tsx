@@ -147,6 +147,10 @@ export default function ResumePage() {
         setAiResult(parsed)
         localStorage.setItem('aiResumeResult', JSON.stringify(parsed))
         localStorage.setItem('aiResumeTimestamp', new Date().toISOString())
+        // Save matched_jobs under the key that JobsPage reads from
+        if (parsed.matched_jobs) {
+          localStorage.setItem('aiMatchedJobs', JSON.stringify(parsed.matched_jobs))
+        }
         // Refresh subscription so usage counters update from DB
         refreshSubscription().catch(() => {})
         setStage('done')

@@ -71,8 +71,8 @@ export default function Register() {
 
         <div className="grid grid-cols-2 gap-3 mb-6">
           {[
-            { name: 'Google', color: 'bg-gray-900 text-white', logo: 'G', url: 'http://localhost:5000/api/auth/google' },
-            { name: 'GitHub', color: 'bg-white border border-gray-200 text-gray-700', logo: '⌥', url: 'http://localhost:5000/api/auth/github' },
+            { name: 'Google', color: 'bg-gray-900 text-white', logo: 'G', url: '/api/auth/google' },
+            { name: 'GitHub', color: 'bg-white border border-gray-200 text-gray-700', logo: '⌥', url: '/api/auth/github' },
           ].map(s => (
             <button key={s.name} 
               onClick={() => { window.location.href = s.url }}

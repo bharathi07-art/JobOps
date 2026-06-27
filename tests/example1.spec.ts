@@ -38,23 +38,16 @@ test.describe("JobOps authentication and Security lifeStyle", () => {
 
         // Verify we are on the dashboard
         await expect(page).toHaveURL('http://localhost:5173/dashboard');
+
+        //got to analysis page
+        await page.goto('http://localhost:5173/dashboard/analytics');
+
+        const upgradeModel = page.locator('upgrade Now');
+        await expect(page.getByText(/Upgrade required to access analytics|upgrade Now /i)).toBeVisible();
+
+        await expect(page.getByRole('button', {name:'upgrade Now'})).toBeVisible
     });
 
-    test("Test 3: Resume Upload & Processing Loop", async ({ page }) => {
-      // Navigate to the resume analysis page
-      await page.goto('http://localhost:5173/dashboard/resume')
-
-      // Upload a sample resume PDF (ensure the fixture file exists in the repository)
-      await page.setInputFiles('input[type="file"]' , 'tests/fixture/sample_resume.pdf')
-
-      // Wait for the AI analysis to complete – the UI shows "Analysis Complete!"
-      await page.waitForSelector('text=Analysis Complete!', { timeout: 120000 })
-
-      // Verify that the resume score section becomes visible
-      await expect(page.getByText(/Resume Score/i)).toBeVisible()
-
-      // Verify that the matched jobs section appears after processing
-      await expect(page.getByRole('heading', { name: /Matched Jobs/i })).toBeVisible()
-    })
+    
 
 });

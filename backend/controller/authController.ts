@@ -17,7 +17,7 @@ const setAuthCookie = (res: Response, token: string, isAdmin: boolean) => {
   const options = {
     httpOnly: true,
     secure: isProduction,
-    sameSite: 'strict' as const,
+    sameSite: (isProduction ? 'strict' : 'lax') as 'strict' | 'lax',
     path: '/',
     maxAge: 30 * 24 * 60 * 60 * 1000,
   };

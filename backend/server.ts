@@ -28,7 +28,12 @@ const app = express();
 
 
 app.use(cors({
-  origin: "http://localhost:5173",
+  origin: function (origin, callback) {
+    // Allow requests with no origin (mobile apps, curl, etc.)
+    if (!origin) return callback(null, true);
+    // In development, allow any origin (for port forwarding / mobile testing)
+    callback(null, origin);
+  },
   credentials: true}
 ));
 app.use(express.json());
@@ -74,7 +79,7 @@ connDB().then(() => {
     runPermanentDeletionJob().catch(err => console.error('Permanent deletion job failed:', err));
   }, 6 * 60 * 60 * 1000);
 
-  app.listen(port, () => {
+  app.listen(port,'0.0.0.0', () => {
     console.log(`Server running at http://localhost:${port}`);
   });
 });

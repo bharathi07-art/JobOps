@@ -14,13 +14,16 @@ export default function Login() {
   const navigate = useNavigate();
   const { refreshSubscription } = useSubscription()
 
+  
+
   const handleSubmit =async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
     try{
-      const res =await fetch("http://localhost:5000/api/user/login",{
+      const res =await fetch(`/api/user/login`,{
         method: "POST",
         headers:{"Content-type": "application/json"},
+        credentials: "include",
         body: JSON.stringify({email: email, password:password}),
       });
 
@@ -74,8 +77,8 @@ export default function Login() {
         {/* Social Logins */}
         <div className="grid grid-cols-2 gap-3 mb-6">
           {[
-            { name: 'Google', color: 'bg-white border-gray-200', logo: 'G', url: 'http://localhost:5000/api/auth/google' },
-            { name: 'GitHub', color: 'bg-gray-900 border-gray-900 text-white', logo: '⌥', url: 'http://localhost:5000/api/auth/github' },
+            { name: 'Google', color: 'bg-white border-gray-200', logo: 'G', url: '/api/auth/google' },
+            { name: 'GitHub', color: 'bg-gray-900 border-gray-900 text-white', logo: '⌥', url: '/api/auth/github' },
           ].map(s => (
             <button key={s.name} 
               onClick={() => { window.location.href = s.url }}
