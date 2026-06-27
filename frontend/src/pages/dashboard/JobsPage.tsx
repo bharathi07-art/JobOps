@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 
 import { UpgradeBanner } from '../../utils/UpgradeBanner';
 import { motion, AnimatePresence } from 'framer-motion'
-import { Search, Filter, MapPin, Briefcase, Sparkles, TrendingUp, AlertCircle, ExternalLink, Bookmark, BookmarkCheck, X, CheckCircle2, Clock, BookmarkPlus } from 'lucide-react';
+import { Search, Filter, MapPin, Briefcase, Sparkles, TrendingUp, AlertCircle, ExternalLink, Bookmark, BookmarkCheck, X, CheckCircle2, Clock, BookmarkPlus, Globe, ChevronDown } from 'lucide-react';
 import { Link, useNavigate, useLocation } from 'react-router-dom'
 
 
@@ -40,6 +40,9 @@ export default function JobsPage() {
   const initialSearch = location.state?.searchTerm ?? querySearch;
   const [search, setSearch] = useState(initialSearch);
   const [categoryFilter, setCategoryFilter] = useState('All');
+  const [selectedCountries, setSelectedCountries] = useState<Set<string>>(new Set());
+  const [showCountryDropdown, setShowCountryDropdown] = useState(false);
+  const countryDropdownRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     // Update search when URL or state changes (e.g., after navigation)
     const newSearch = location.state?.searchTerm ?? new URLSearchParams(location.search).get('search') ?? '';
@@ -52,6 +55,38 @@ export default function JobsPage() {
   const [timestamp, setTimestamp] = useState<string | null>(null);
   const [timestampMode, setTimestampMode] = useState<'relative' | 'absolute'>('relative');
   const jobs = aiResult?.matched_jobs ?? [];
+
+  // Extract unique countries from job locations
+  const extractCountry = (location?: string): string => {
+    if (!location) return '';
+    const parts = location.split(',').map(p => p.trim());
+    return parts[parts.length - 1] || '';
+  };
+  const uniqueCountries = Array.from(
+    new Set(jobs.map(j => extractCountry(j.location)).filter(Boolean))
+  ).sort();
+
+  // Close country dropdown on outside click
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (countryDropdownRef.current && !countryDropdownRef.current.contains(e.target as Node)) {
+        setShowCountryDropdown(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const toggleCountry = (country: string) => {
+    setSelectedCountries(prev => {
+      const next = new Set(prev);
+      if (next.has(country)) next.delete(country);
+      else next.add(country);
+      return next;
+    });
+  };
+
+  const clearCountryFilter = () => setSelectedCountries(new Set());
 
   useEffect(() => {
     const ts = localStorage.getItem('aiResumeTimestamp');
@@ -148,7 +183,9 @@ export default function JobsPage() {
       job.company.toLowerCase().includes(search.toLowerCase())
     const matchesCategory =
       categoryFilter === 'All' || job.category === categoryFilter.toLowerCase()
-    return matchesSearch && matchesCategory
+    const matchesCountry =
+      selectedCountries.size === 0 || selectedCountries.has(extractCountry(job.location))
+    return matchesSearch && matchesCategory && matchesCountry
   })
 
   const highCount = jobs.filter(j => j.category === 'high').length
@@ -217,7 +254,7 @@ export default function JobsPage() {
 
         {/* Filters */}
         {jobs.length > 0 && (
-          <div className="flex flex-col sm:flex-row gap-3">
+          <div className="flex flex-col sm:flex-row gap-3 flex-wrap">
             <div className="relative flex-1 max-w-sm">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
               <input value={search} onChange={e => setSearch(e.target.value)}
@@ -234,6 +271,125 @@ export default function JobsPage() {
                 </button>
               ))}
             </div>
+
+            {/* Country Filter Dropdown */}
+            {uniqueCountries.length > 0 && (
+              <div className="relative" ref={countryDropdownRef}>
+                <button
+                  onClick={() => setShowCountryDropdown(prev => !prev)}
+                  className={cn(
+                    'flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium transition-all border',
+                    selectedCountries.size > 0
+                      ? 'bg-[#FF4500] text-white border-[#FF4500]'
+                      : 'bg-white border-gray-200 text-gray-600 hover:border-[#FF4500]'
+                  )}
+                >
+                  <Globe className="w-3.5 h-3.5" />
+                  {selectedCountries.size > 0 ? `${selectedCountries.size} ${selectedCountries.size === 1 ? 'Country' : 'Countries'}` : 'Country'}
+                  <ChevronDown className={cn('w-3 h-3 transition-transform', showCountryDropdown && 'rotate-180')} />
+                </button>
+
+                {/* Dropdown Panel */}
+                <AnimatePresence>
+                  {showCountryDropdown && (
+                    <motion.div
+                      initial={{ opacity: 0, y: -4, scale: 0.97 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: -4, scale: 0.97 }}
+                      transition={{ duration: 0.15 }}
+                      className="absolute top-full left-0 mt-2 w-56 bg-white border border-gray-200 rounded-xl shadow-xl z-40 overflow-hidden"
+                    >
+                      {/* Header */}
+                      <div className="flex items-center justify-between px-3 py-2.5 border-b border-gray-100 bg-gray-50/60">
+                        <span className="text-xs font-semibold text-gray-700">Filter by Country</span>
+                        {selectedCountries.size > 0 && (
+                          <button
+                            onClick={clearCountryFilter}
+                            className="text-[10px] font-medium text-[#FF4500] hover:text-[#e03e00] transition-colors"
+                          >
+                            Clear all
+                          </button>
+                        )}
+                      </div>
+
+                      {/* Country list */}
+                      <div className="max-h-52 overflow-y-auto py-1">
+                        {uniqueCountries.map(country => {
+                          const isSelected = selectedCountries.has(country);
+                          const count = jobs.filter(j => extractCountry(j.location) === country).length;
+                          return (
+                            <label
+                              key={country}
+                              className={cn(
+                                'flex items-center gap-2.5 px-3 py-2 cursor-pointer transition-colors hover:bg-orange-50/60',
+                                isSelected && 'bg-orange-50/40'
+                              )}
+                            >
+                              <div className="relative flex items-center justify-center">
+                                <input
+                                  type="checkbox"
+                                  checked={isSelected}
+                                  onChange={() => toggleCountry(country)}
+                                  className="sr-only"
+                                />
+                                <div className={cn(
+                                  'w-4 h-4 rounded border-2 flex items-center justify-center transition-all',
+                                  isSelected
+                                    ? 'bg-[#FF4500] border-[#FF4500]'
+                                    : 'border-gray-300 bg-white hover:border-[#FF4500]/50'
+                                )}>
+                                  {isSelected && (
+                                    <svg className="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                                      <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                                    </svg>
+                                  )}
+                                </div>
+                              </div>
+                              <span className={cn(
+                                'text-xs transition-colors flex-1',
+                                isSelected ? 'text-gray-900 font-medium' : 'text-gray-600'
+                              )}>
+                                {country}
+                              </span>
+                              <span className="text-[10px] text-gray-400 font-medium bg-gray-100 px-1.5 py-0.5 rounded-full">
+                                {count}
+                              </span>
+                            </label>
+                          );
+                        })}
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+            )}
+
+            {/* Active country filter pills */}
+            {selectedCountries.size > 0 && (
+              <div className="flex items-center gap-1.5 flex-wrap">
+                {Array.from(selectedCountries).map(country => (
+                  <span
+                    key={country}
+                    className="inline-flex items-center gap-1 px-2.5 py-1 bg-orange-50 text-[#FF4500] text-xs font-medium rounded-full border border-orange-200"
+                  >
+                    <MapPin className="w-2.5 h-2.5" />
+                    {country}
+                    <button
+                      onClick={() => toggleCountry(country)}
+                      className="ml-0.5 p-0.5 hover:bg-orange-100 rounded-full transition-colors"
+                    >
+                      <X className="w-2.5 h-2.5" />
+                    </button>
+                  </span>
+                ))}
+                <button
+                  onClick={clearCountryFilter}
+                  className="text-[10px] text-gray-500 hover:text-[#FF4500] font-medium px-2 py-1 transition-colors"
+                >
+                  Clear all
+                </button>
+              </div>
+            )}
           </div>
         )}
 
