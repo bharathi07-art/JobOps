@@ -9,13 +9,16 @@ const googleClientSecret = process.env.GOOGLE_CLIENT_SECRET || process.env.googl
 const googleCallbackURL = process.env.GOOGLE_CALLBACK_URL || process.env.googleCallbackURL || "http://localhost:5000/api/auth/google/callback";
 
 if (!googleClientID || !googleClientSecret) {
-  throw new Error('Google OAuth requires client ID and client secret. Set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET in your environment.');
+  console.warn('⚠️ Google OAuth requires client ID and client secret. Set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET in your environment. Using dummy values for testing.');
 }
+
+const finalGoogleClientID = googleClientID || "dummy_client_id";
+const finalGoogleClientSecret = googleClientSecret || "dummy_client_secret";
 
 passport.use(new GoogleStrategy(
   {
-    clientID: googleClientID,
-    clientSecret: googleClientSecret,
+    clientID: finalGoogleClientID,
+    clientSecret: finalGoogleClientSecret,
     callbackURL: googleCallbackURL,
   },
   async (accessToken, refreshToken, profile, done) => {

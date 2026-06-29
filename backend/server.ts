@@ -76,16 +76,23 @@ app.use((_req: Request, res: Response) => {
 
 const port: number = Number(process.env.PORT) || 5000;
 
-connDB().then(() => {
-  // Start background email automation after Mongo is connected
-  startEmailAutomationScheduler();
+function startServer() {
+  connDB().then(() => {
+    // Start background email automation after Mongo is connected
+    startEmailAutomationScheduler();
 
-  // Run permanent deletion job every 6 hours
-  setInterval(() => {
-    runPermanentDeletionJob().catch(err => console.error('Permanent deletion job failed:', err));
-  }, 6 * 60 * 60 * 1000);
+    // Run permanent deletion job every 6 hours
+    setInterval(() => {
+      runPermanentDeletionJob().catch(err => console.error('Permanent deletion job failed:', err));
+    }, 6 * 60 * 60 * 1000);
 
-  app.listen(port,'0.0.0.0', () => {
-    console.log(`Server running at http://localhost:${port}`);
+    app.listen(port,'0.0.0.0', () => {
+      console.log(`Server running at http://localhost:${port}`);
+    });
   });
-});
+}
+
+// Only start the server when this file is run directly (not imported by tests)
+if (require.main === module) {
+  startServer();
+}

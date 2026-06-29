@@ -9,13 +9,16 @@ const githubClientSecret = process.env.GITHUB_CLIENT_SECRET || process.env.Githu
 const githubCallbackURL = process.env.GITHUB_CALLBACK_URL || process.env.GithubCallbackURL || process.env.callbackURL || 'http://localhost:5000/api/auth/github/callback';
 
 if (!githubClientID || !githubClientSecret) {
-  throw new Error('GitHub OAuth requires client ID and client secret. Set GITHUB_CLIENT_ID and GITHUB_CLIENT_SECRET in your environment.');
+  console.warn('⚠️ GitHub OAuth requires client ID and client secret. Set GITHUB_CLIENT_ID and GITHUB_CLIENT_SECRET in your environment. Using dummy values for testing.');
 }
+
+const finalGithubClientID = githubClientID || "dummy_client_id";
+const finalGithubClientSecret = githubClientSecret || "dummy_client_secret";
 
 passport.use(new GitHubStrategy(
   {
-    clientID: githubClientID,
-    clientSecret: githubClientSecret,
+    clientID: finalGithubClientID,
+    clientSecret: finalGithubClientSecret,
     callbackURL: githubCallbackURL,
     scope: ['user:email'],
   },

@@ -54,6 +54,7 @@ jobs:
         env:
           NODE_ENV: test
           DATABASE_URL: "mysql://root:root@localhost:3306/test_db"
+          JWT_SECRET: "supersecret"
 
   # JOB 2: Build and verify the frontend
   frontend-ci:

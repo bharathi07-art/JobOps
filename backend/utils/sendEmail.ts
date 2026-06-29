@@ -8,10 +8,12 @@ const transporter = nodemailer.createTransport({
     }
 });
 
-transporter.verify().then(() => {
-    console.log('SMTP transporter is ready');
-}).catch((error) => {
-    console.error('SMTP transporter verification failed:', error);
-});
+if (process.env.NODE_ENV !== 'test') {
+    transporter.verify().then(() => {
+        console.log('SMTP transporter is ready');
+    }).catch((error) => {
+        console.error('SMTP transporter verification failed:', error);
+    });
+}
 
 export default transporter;
