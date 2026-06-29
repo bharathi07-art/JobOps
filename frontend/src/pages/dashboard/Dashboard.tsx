@@ -34,20 +34,6 @@ const fadeUp = (i = 0) => ({
 
 const statIcons = [Briefcase, TrendingUp, Activity, Sparkles]
 
-function getStoredUserInfo() {
-  try {
-    const parsed = JSON.parse(localStorage.getItem('userInfo') || 'null')
-    if (!parsed) return null
-    const nested = parsed?.user || parsed?.User
-    return {
-      ...parsed,
-      plan: parsed?.plan || nested?.plan || parsed?.subscription || nested?.subscription || 'Free',
-    }
-  } catch {
-    return null
-  }
-}
-
 export default function Dashboard() {
   const navigate = useNavigate()
   const [aiResult, setAiResult] = useState<AIResult | null>(null)
@@ -133,20 +119,7 @@ export default function Dashboard() {
   }, [])
 
   const subscriptionContext = useSubscription()
-  const { subscription, isPremium } = subscriptionContext
-
-  const storedUser = getStoredUserInfo()
-  const planName =
-    subscription?.subscriptionPlan ||
-    subscription?.plan ||
-    storedUser?.plan ||
-    storedUser?.subscription ||
-    'Free'
-  const hasNeverActivatedPlan =
-    !subscription?.subscriptionPlan &&
-    !subscription?.plan &&
-    !storedUser?.plan &&
-    !storedUser?.subscription
+  const { isPremium } = subscriptionContext
 
   const jobs = aiResult?.matched_jobs ?? []
   const resumeScore = aiResult?.resume_score ?? 0

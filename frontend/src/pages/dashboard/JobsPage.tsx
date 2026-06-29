@@ -105,7 +105,7 @@ export default function JobsPage() {
   }, []);
 
   useEffect(() => {
-    let pollInterval: NodeJS.Timeout | null = null;
+    let pollInterval: any = null;
     const fetchLatest = async () => {
       try {
         const { data } = await axios.get('/api/jobresult/matched-jobs');

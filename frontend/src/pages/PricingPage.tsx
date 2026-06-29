@@ -72,7 +72,7 @@ const PLANS = [
 export default function PricingPage() {
   const navigate = useNavigate();
   const [currentPlan, setCurrentPlan] = useState<string>('Free');
-  const [subscribing, setSubscribing] = useState<string | null>(null);
+  const subscribing: string | null = null;
   const [message, setMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
 
   useEffect(() => {

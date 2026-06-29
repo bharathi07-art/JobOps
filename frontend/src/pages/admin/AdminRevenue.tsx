@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { DollarSign, TrendingUp, TrendingDown, Zap, Target } from 'lucide-react'
+import { DollarSign, TrendingUp, Zap, Target } from 'lucide-react'
 import { AdminLayout } from '../../components/layout/AdminLayout'
 import { ACard, SectionHeader, BarChart, LineChart, AdminStatCard } from '../../components/ui/AdminCharts'
 import { cn } from '../../utils/utils'

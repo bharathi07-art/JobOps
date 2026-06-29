@@ -469,7 +469,7 @@ export default function SettingsPage() {
                 <Save className="w-4 h-4" />{saved ? 'Saved!' : 'Save Changes'}
               </Button>
 
-              <DeleteAccountSection currentPlan={currentPlan} userEmail={email} />
+              <DeleteAccountSection currentPlan={currentPlan} />
             </Card>
           )}
 

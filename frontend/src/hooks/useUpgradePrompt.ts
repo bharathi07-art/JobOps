@@ -7,12 +7,12 @@ interface UseUpgradePromptOptions {
   customMessage?: string;
 }
 
-export function useUpgradePrompt(options: UseUpgradePromptOptions = {}) {
+export function useUpgradePrompt(_options: UseUpgradePromptOptions = {}) {
   const { canPerformAction, isPremium, showUpgradeModal: globalShowUpgradeModal } = useSubscription();
 
   const showUpgradeModal = useCallback(
     (
-      newReason: 'usage-limit' | 'feature-locked' | 'custom' = 'feature-locked',
+      _newReason: 'usage-limit' | 'feature-locked' | 'custom' = 'feature-locked',
       feature = 'Premium Feature'
     ) => {
       globalShowUpgradeModal(feature);

@@ -249,12 +249,12 @@ export default function AdminSettings() {
                     <div className="grid sm:grid-cols-2 gap-3">
                       <div className="space-y-1">
                         <label className="text-xs text-gray-500">Price ($)</label>
-                        <input value={settings[p.priceKey as keyof Settings]} onChange={(e) => setSettings({ ...settings, [p.priceKey]: Number(e.target.value) })} type="number"
+                        <input value={String(settings[p.priceKey as keyof Settings] ?? '')} onChange={(e) => setSettings({ ...settings, [p.priceKey]: Number(e.target.value) })} type="number"
                           className="w-full h-8 px-3 rounded-lg border border-gray-200 text-sm outline-none focus:border-[#FF4500] bg-white" />
                       </div>
                       <div className="space-y-1">
                         <label className="text-xs text-gray-500">Features</label>
-                        <input value={settings[p.featuresKey as keyof Settings]} onChange={(e) => setSettings({ ...settings, [p.featuresKey]: e.target.value })}
+                        <input value={String(settings[p.featuresKey as keyof Settings] ?? '')} onChange={(e) => setSettings({ ...settings, [p.featuresKey]: e.target.value })}
                           className="w-full h-8 px-3 rounded-lg border border-gray-200 text-sm outline-none focus:border-[#FF4500] bg-white" />
                       </div>
                     </div>

@@ -65,7 +65,6 @@ export default function ResumePage() {
 
   const { isPremium, subscription, refreshSubscription } = useSubscription()
   const {
-    showUpgradeModal,
     checkAndPromptUpgrade,
   } = useUpgradePrompt({ featureName: 'Resume Analysis' })
 

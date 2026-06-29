@@ -5,75 +5,23 @@ import { Send, TrendingUp, Star, Bookmark, Sparkles, Brain, Target, Activity } f
 import { DashboardLayout } from '../../components/layout/DashboardLayout'
 import { Card } from '../../components/ui/index'
 import { cn } from '../../utils/utils'
-import type { Application } from '../../types'
 import { useSubscription } from '../../contexts/SubscriptionContext'
-import { useUpgradePrompt } from '../../hooks/useUpgradePrompt'
 import { UpgradeBanner } from '../../utils/UpgradeBanner'
 
-interface AIResult {
-  matched_jobs?: { match_percentage: number; category: string }[]
-  resume_score?: number
-  ats_score?: number
-  recommendations?: string[]
-}
-
-function loadRealData() {
-  // Applications from tracker
-  let apps: Application[] = []
-  try { apps = JSON.parse(localStorage.getItem('trackedApplications') ?? '[]') } catch { /* */ }
-
-  // AI result from resume analysis
-  let ai: AIResult | null = null
-  try { ai = JSON.parse(localStorage.getItem('aiResumeResult') ?? 'null') } catch { /* */ }
-
-  // Saved jobs keys
-  let savedKeys: string[] = []
-  try { savedKeys = JSON.parse(localStorage.getItem('savedJobKeys') ?? '[]') } catch { /* */ }
-
-  const jobs = ai?.matched_jobs ?? []
-  const matchScores = jobs.map(j => j.match_percentage)
-  const avgMatch = matchScores.length
-    ? Math.round(matchScores.reduce((a, b) => a + b, 0) / matchScores.length)
-    : 0
-  const highestMatch = matchScores.length ? Math.max(...matchScores) : 0
-
-  // Build weekly activity from apps (last 7 days)
-  const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
-  const today = new Date()
-  const weekly = Array.from({ length: 7 }, (_, i) => {
-    const d = new Date(today)
-    d.setDate(today.getDate() - (6 - i))
-    const label = days[d.getDay()]
-    const dateStr = d.toLocaleDateString()
-    const count = apps.filter(a => a.appliedAt === dateStr).length
-    return { day: label, applications: count }
-  })
-
-  // Status breakdown
-  const statusCounts = {
-    Applied: apps.filter(a => a.status === 'Applied').length,
-    'Under Review': apps.filter(a => a.status === 'Under Review').length,
-    'Interview Scheduled': apps.filter(a => a.status === 'Interview Scheduled').length,
-    Shortlisted: apps.filter(a => a.status === 'Shortlisted').length,
-    'Offer Received': apps.filter(a => a.status === 'Offer Received').length,
-    Rejected: apps.filter(a => a.status === 'Rejected').length,
-  }
-
-  return {
-    totalMatched: jobs.length,
-    totalApplied: apps.length,
-    highestMatch,
-    avgMatch,
-    savedCount: savedKeys.length,
-    resumeScore: ai?.resume_score ?? 0,
-    atsScore: ai?.ats_score ?? 0,
-    recommendationCount: ai?.recommendations?.length ?? 0,
-    weekly,
-    statusCounts,
-    matchScores,
-    hasAiData: !!ai,
-    hasApps: apps.length > 0,
-  }
+interface AnalyticsData {
+  totalMatched: number;
+  totalApplied: number;
+  highestMatch: number;
+  avgMatch: number;
+  savedCount: number;
+  resumeScore: number;
+  atsScore: number;
+  recommendationCount: number;
+  weekly: { day: string; applications: number }[];
+  statusCounts: Record<string, number>;
+  matchScores: number[];
+  hasAiData: boolean;
+  hasApps: boolean;
 }
 
 const statusColors: Record<string, string> = {
@@ -87,13 +35,10 @@ const statusColors: Record<string, string> = {
 
 export default function AnalyticsPage() {
   const { isPremium, loading } = useSubscription()
-  const { showUpgradeModal } = useUpgradePrompt({
-    featureName: 'Advanced Analytics',
-  })
   const [apiUpgradeInfo, setApiUpgradeInfo] = useState<{ message: string; requiredPlans: string[]; upgradeUrl: string } | null>(null)
 
   // Initialize empty data structure
-  const initialData = {
+  const initialData: AnalyticsData = {
     totalMatched: 0,
     totalApplied: 0,
     highestMatch: 0,
@@ -108,8 +53,7 @@ export default function AnalyticsPage() {
     hasAiData: false,
     hasApps: false,
   };
-  const [data, setData] = useState(initialData);
-
+  const [data, setData] = useState<AnalyticsData>(initialData);
 
   // Fetch latest AI result and analytics data from backend
   useEffect(() => {
@@ -123,9 +67,9 @@ export default function AnalyticsPage() {
         const analytics = analyticsRes.data?.analytics || {};
         const apps = JSON.parse(localStorage.getItem('trackedApplications') ?? '[]');
         const savedKeys = JSON.parse(localStorage.getItem('savedJobKeys') ?? '[]');
-        const jobs = ai?.matched_jobs ?? [];
-        const matchScores = jobs.map(j => j.match_percentage);
-        const avgMatch = matchScores.length ? Math.round(matchScores.reduce((a,b)=>a+b,0)/matchScores.length) : 0;
+        const jobs: any[] = ai?.matched_jobs ?? [];
+        const matchScores: number[] = jobs.map((j: any) => Number(j.match_percentage || 0));
+        const avgMatch = matchScores.length ? Math.round(matchScores.reduce((acc: number, val: number) => acc + val, 0) / matchScores.length) : 0;
         const highestMatch = matchScores.length ? Math.max(...matchScores) : 0;
         const weekly = analytics.weekly || [];
         const statusCounts = analytics.statusCounts || {};

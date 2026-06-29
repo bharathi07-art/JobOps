@@ -1,4 +1,3 @@
-import React from 'react';
 import { Link } from 'react-router-dom';
 import { Card } from '../../components/ui/index';
 import { Button } from '../../components/ui/Button';
@@ -93,13 +92,14 @@ export default function PricingPage() {
                 </li>
               ))}
             </ul>
-            <Button
-              variant={plan.popular ? 'default' : 'secondary'}
-              className="mt-auto"
-              asChild
-            >
-              <Link to="/dashboard/settings">Select {plan.name}</Link>
-            </Button>
+            <Link to="/dashboard/settings" className="mt-auto w-full">
+              <Button
+                variant={plan.popular ? 'primary' : 'secondary'}
+                className="w-full"
+              >
+                Select {plan.name}
+              </Button>
+            </Link>
           </Card>
         ))}
       </div>
