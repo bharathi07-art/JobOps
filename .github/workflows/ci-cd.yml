@@ -4,15 +4,15 @@ on:
   push:
     branches: [main]
   pull_request:
-    branchs: [main]
+    branches: [main]
 
-Jobs:
+jobs:
   # JOB 1: Test and verify the backend ecosystem
   backend-ci:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Repository
-        use: actions/checkout@v4
+        uses: actions/checkout@v4
       
       - name: Setup Node.js
         uses: actions/setup-node@v4

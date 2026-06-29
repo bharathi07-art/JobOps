@@ -18,7 +18,7 @@ export const authMiddleware=(
             : null);
 
         if (!token) {
-            res.status(401).json({ message: "Invalid token format" });
+            res.status(401).json({ success: false, message: "Authorization required" });
             return;
         }
         
@@ -33,6 +33,6 @@ export const authMiddleware=(
 
    } catch (error) {
     console.error("JWT Verification Error:", error);
-    res.status(401).json({ message: "Unauthorized" });
+    res.status(401).json({ success: false, message: "Invalid or expired token" });
   }
 }

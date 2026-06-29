@@ -24,6 +24,7 @@ import { runPermanentDeletionJob } from "./services/accountDeletionService";
 import payment from "./routes/PaymentRoutes";
 
 const app = express();
+export default app;
 
 
 
@@ -66,6 +67,11 @@ app.use("/api/account", accountDeletionRoutes);
 app.use('/logout', logoutRoute);
 
 app.use("/api/payment", payment)
+
+// 404 catch-all for unknown routes
+app.use((_req: Request, res: Response) => {
+  res.status(404).json({ success: false, message: "Not found" });
+});
 
 
 const port: number = Number(process.env.PORT) || 5000;
