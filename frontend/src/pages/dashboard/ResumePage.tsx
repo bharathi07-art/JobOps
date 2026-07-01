@@ -44,6 +44,7 @@ export default function ResumePage() {
   const [stage, setStage] = useState<Stage>('idle')
   const [dragOver, setDragOver] = useState(false)
   const [fileName, setFileName] = useState('')
+  const [pendingFile, setPendingFile] = useState<File | null>(null)
   const [uploadProgress, setUploadProgress] = useState(0)
   const [loadingStep, setLoadingStep] = useState(0)
   const [aiResult, setAiResult] = useState<AIResult | null>(null)
@@ -170,12 +171,32 @@ export default function ResumePage() {
     e.preventDefault()
     setDragOver(false)
     const file = e.dataTransfer.files[0]
-    if (file) analyzeFile(file)
+    if (file) {
+      // ask user to confirm before starting analysis
+      setPendingFile(file)
+      setFileName(file.name)
+    }
   }
 
   const handleInput = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
-    if (file) analyzeFile(file)
+    if (file) {
+      // ask user to confirm before starting analysis
+      setPendingFile(file)
+      setFileName(file.name)
+    }
+  }
+
+  const confirmAnalyze = () => {
+    if (!pendingFile) return
+    // proceed with the existing flow
+    analyzeFile(pendingFile)
+    setPendingFile(null)
+  }
+
+  const cancelAnalyze = () => {
+    setPendingFile(null)
+    setFileName('')
   }
 
   // Render UpgradeModal from hook
@@ -201,6 +222,22 @@ export default function ResumePage() {
   return (
     <DashboardLayout>
       <div className="max-w-5xl mx-auto space-y-6">
+
+        {/* Confirmation modal shown when a file is selected but not yet confirmed */}
+        {pendingFile && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center">
+            <div className="absolute inset-0 bg-black/40" onClick={cancelAnalyze} />
+            <div className="relative bg-white rounded-xl p-6 w-full max-w-sm z-10 shadow-lg">
+              <h3 className="text-sm font-semibold text-gray-900">Confirm Resume Analysis</h3>
+              <p className="text-xs text-gray-500 mt-2 truncate">Are you sure you want to analyze:</p>
+              <p className="text-sm font-medium text-gray-800 mt-1 truncate">{fileName}</p>
+              <div className="mt-4 flex justify-end gap-2">
+                <Button variant="secondary" size="sm" onClick={cancelAnalyze}>Cancel</Button>
+                <Button size="sm" onClick={confirmAnalyze}>Continue</Button>
+              </div>
+            </div>
+          </div>
+        )}
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Resume Analysis</h1>
           <p className="text-gray-500 mt-1">Upload your resume and get AI-powered job matches instantly.</p>
