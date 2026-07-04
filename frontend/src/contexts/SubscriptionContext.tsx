@@ -130,15 +130,21 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
 
     switch (action) {
       case 'aiSearch': {
-        const remaining = Math.max(
-          0,
-          subscription.maxAISearches === 0
-            ? Infinity
-            : subscription.maxAISearches - subscription.aiSearchesUsed
-        );
+        const planName = String(subscription.subscriptionPlan || '').toLowerCase();
+        if (planName === 'free') {
+          const weeklyRemaining = subscription.weeklySearchesRemaining ?? 0;
+          const monthlyRemaining = subscription.monthlySearchesRemaining ?? 0;
+          const remaining = Math.min(weeklyRemaining, monthlyRemaining);
+          return {
+            allowed: remaining > 0,
+            remaining,
+          };
+        }
+
+        const dailyRemaining = subscription.dailySearchesRemaining ?? 0;
         return {
-          allowed: subscription.maxAISearches === 0 || subscription.aiSearchesUsed < subscription.maxAISearches,
-          remaining: remaining === Infinity ? 999 : remaining,
+          allowed: dailyRemaining > 0,
+          remaining: dailyRemaining,
         };
       }
       case 'saveJob': {

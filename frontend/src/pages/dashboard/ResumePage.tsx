@@ -144,13 +144,17 @@ export default function ResumePage() {
           parsed = { recommendations: [raw] }
         }
 
+        if (!parsed.matched_jobs || !Array.isArray(parsed.matched_jobs)) {
+          setErrorMsg('The AI returned an incomplete result. Please try again with a different resume file.')
+          setStage('error')
+          return
+        }
+
         setAiResult(parsed)
         localStorage.setItem('aiResumeResult', JSON.stringify(parsed))
         localStorage.setItem('aiResumeTimestamp', new Date().toISOString())
         // Save matched_jobs under the key that JobsPage reads from
-        if (parsed.matched_jobs) {
-          localStorage.setItem('aiMatchedJobs', JSON.stringify(parsed.matched_jobs))
-        }
+        localStorage.setItem('aiMatchedJobs', JSON.stringify(parsed.matched_jobs))
         // Refresh subscription so usage counters update from DB
         refreshSubscription().catch(() => {})
         setStage('done')
@@ -162,7 +166,8 @@ export default function ResumePage() {
     } catch (err: any) {
       if (stepTimerRef.current) clearInterval(stepTimerRef.current)
       console.error('Request error:', err?.response?.data || err.message)
-      setErrorMsg(err?.response?.data?.message || 'Failed to analyze resume. Please try again.')
+      const message = err?.response?.data?.message || 'Failed to analyze resume. Please try again.'
+      setErrorMsg(message)
       setStage('error')
     }
   }

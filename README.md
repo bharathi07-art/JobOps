@@ -54,6 +54,22 @@ The platform serves two distinct personas through role-based dashboards:
 | **User** | Resume upload & AI analysis, job search & save, AI chatbot, subscription management, email automation, account lifecycle management |
 | **Admin** | Platform analytics, user management, subscription oversight, feedback triage, AI monitoring, revenue tracking, system settings |
 
+## ✨ Recent Updates
+
+The project has recently been hardened around the core job-search experience with production-ready reliability improvements:
+
+- Added robust resume upload validation for PDF and DOCX files, including size limits and empty/corrupt-file handling.
+- Introduced structured resume-text extraction and safer AI-response parsing so malformed or incomplete model output is handled gracefully.
+- Enforced subscription limits server-side for Free and Paid users, including Free weekly/monthly caps and Paid daily caps.
+- Added clearer upgrade/error responses so the frontend can surface limit-exceeded and AI-service issues directly to users.
+- Expanded the email automation workflow for paid users with recurring job-match emails tied to the user’s saved resume context.
+- Added regression tests covering resume-processing helpers and the main analysis path.
+
+### Verification Status
+
+- Backend tests: passing via `npm test -- --runInBand`
+- Frontend build: passing via `npm run build`
+
 ---
 
 ## 🏗 System Architecture
@@ -214,9 +230,11 @@ The platform serves two distinct personas through role-based dashboards:
 
 | Feature | Status |
 |---------|--------|
-| PDF file upload via `uploadMiddleware` (Multer) | 🟢 Complete |
-| Document text extraction with `pdf-parse` | 🟢 Complete |
-| AI-powered resume analysis & career analytics | 🟢 Complete |
+| PDF and DOCX resume upload via `uploadMiddleware` (Multer) | 🟢 Complete |
+| Safe document text extraction with validation and file-size guardrails | 🟢 Complete |
+| AI-powered resume analysis & career analytics with structured JSON output | 🟢 Complete |
+| Graceful handling for empty, malformed, timeout, and rate-limit AI responses | 🟢 Complete |
+| Authenticated resume analysis tied to the logged-in user | 🟢 Complete |
 | Usage tracking with plan-based rate limits | 🟢 Complete |
 
 ### 3. Smart Job Cart & Tracking
@@ -242,6 +260,10 @@ The platform serves two distinct personas through role-based dashboards:
 | Feature | Status |
 |---------|--------|
 | Tiered plans: Free → Monthly → Yearly | 🟢 Complete |
+| Free-tier limits: 2 searches/week and 8 searches/month, whichever is hit first blocks further use | 🟢 Complete |
+| Paid-tier limits: 2 searches/day with daily reset logic | 🟢 Complete |
+| Server-side enforcement for usage limits, not just UI gating | 🟢 Complete |
+| Clear upgrade/limit-exceeded responses for the frontend to display | 🟢 Complete |
 | `proPlanMiddleware` route protection | 🟢 Complete |
 | `UpgradeModal` interception for free-tier users | 🟢 Complete |
 | PayPal client-side + server-side payment flow | 🟢 Complete |
@@ -270,7 +292,9 @@ The platform serves two distinct personas through role-based dashboards:
 | Background `emailAutomationScheduler` worker | 🟢 Complete |
 | Configurable frequency, search time, and max results per user | 🟢 Complete |
 | User-level opt-in toggle (`emailAutomationEnabled`) | 🟢 Complete |
+| Recurring paid-user email job-match automation | 🟢 Complete |
 | Resume-text-aware email content personalization | 🟢 Complete |
+| Usage-aware automation checks to avoid exceeding search limits | 🟢 Complete |
 
 ---
 

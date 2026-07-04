@@ -1,13 +1,11 @@
 import { Request, Response } from "express";
-// eslint-disable-next-line @typescript-eslint/no-var-requires
-const { PDFParse } = require('pdf-parse');
-import mammoth from "mammoth";
 import axios from "axios";
 import AIResultModel from "../models/AIResult";
 import ResumeModel from "../models/ResumeModel";
 import LogModel from "../models/Log";
 import AnalyticsModel from "../models/Analytics";
 import { incrementUsage } from "../services/subscriptionService";
+import { extractResumeText, parseAiResponse, validateResumeUpload } from "../utils/resumeProcessing";
 
 // ── Analyze Resume ────────────────────────────────────────────────────────────
 export const analyzeResume = async (req: Request, res: Response) => {
@@ -19,33 +17,23 @@ export const analyzeResume = async (req: Request, res: Response) => {
 
   try {
     const file = req.file;
+    const validation = validateResumeUpload(file as any);
 
-    if (!file) {
-      res.status(400).json({ message: "Resume Required" });
+    if (!validation.ok) {
+      res.status(validation.status || 400).json({ message: validation.message || 'Resume validation failed' });
       return;
     }
 
-    // ── Parse resume text ──────────────────────────────────────────────────
-    let resumeText = "";
-
-    if (file.mimetype === "application/pdf") {
-      const parser = new PDFParse({ data: file.buffer });
-      const result = await parser.getText();
-      resumeText = result.text;
-    }
-
-    if (file.mimetype === "application/vnd.openxmlformats-officedocument.wordprocessingml.document") {
-      const parsed = await mammoth.extractRawText({ buffer: file.buffer });
-      resumeText = parsed.value;
-    }
+    const uploadFile = validation.file as any;
+    const resumeText = await extractResumeText(uploadFile);
 
     // ── Save resume parse to MongoDB ───────────────────────────────────────
     await ResumeModel.create({
       userId,
-      fileName: file.originalname,
-      mimeType: file.mimetype,
+      fileName: uploadFile.originalname,
+      mimeType: uploadFile.mimetype,
       extractedText: resumeText,
-      fileSize: file.size,
+      fileSize: uploadFile.size,
     });
 
     // ── Call Gemini AI ─────────────────────────────────────────────────────
@@ -89,13 +77,17 @@ Rules:
           }]
         }]
       },
-      { headers: { "Content-Type": "application/json" } }
+      { headers: { "Content-Type": "application/json" }, timeout: 120000 }
     );
 
-    const raw: string = aiResponse.data.candidates[0].content.parts[0].text;
+    const raw: string = aiResponse?.data?.candidates?.[0]?.content?.parts?.[0]?.text || '';
+    if (!raw) {
+      throw new Error('The AI returned an empty response.');
+    }
+
     console.log("RAW AI RESPONSE (first 300):", raw.substring(0, 300));
 
-    const parsed = JSON.parse(raw);
+    const parsed = parseAiResponse(raw);
 
     // ── Save AI result to MongoDB ──────────────────────────────────────────
     const savedResult = await AIResultModel.create({
@@ -130,7 +122,7 @@ Rules:
       userId,
       action: "ai_analyze",
       status: "success",
-      detail: `Analyzed ${file.originalname} — ${parsed.matched_jobs?.length ?? 0} jobs matched`,
+      detail: `Analyzed ${uploadFile.originalname} — ${parsed.matched_jobs?.length ?? 0} jobs matched`,
     });
 
     // Increment usage counters
@@ -140,7 +132,7 @@ Rules:
     res.status(200).json({ success: true, result: raw, id: savedResult._id });
 
   } catch (error: any) {
-    console.log("FULL ERROR:", error?.response?.data || error?.message || error);
+    console.error("FULL ERROR:", error?.response?.data || error?.message || error);
 
     await LogModel.create({
       userId,
@@ -149,7 +141,11 @@ Rules:
       detail: error?.message || "Unknown error",
     }).catch(() => {});
 
-    res.status(500).json({ message: "AI processing failed" });
+    const message = error?.response?.status === 429
+      ? 'The AI service is temporarily rate-limited. Please try again shortly.'
+      : error?.message || 'AI processing failed';
+
+    res.status(error?.response?.status || 500).json({ message });
   }
 };
 
