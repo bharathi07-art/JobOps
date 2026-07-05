@@ -78,18 +78,19 @@ export async function validateMatchedJobs<T extends { job_url?: string | null; s
     // rather than risk showing unverified links.
     return jobs.map((job) => ({
       ...job,
-      job_url: job.search_url,
+      job_url: job.search_url || job.job_url, // Keep job_url if search_url is missing
     }));
   }
 
   return (result as PromiseSettledResult<{ job: T; isValid: boolean }>[]).map((settled, i) => {
     const job = jobs[i];
     if (settled.status === 'fulfilled' && settled.value.isValid) {
-      return job;
+      return job; // Keep original job_url if validation passed
     }
+    // Validation failed — use search_url if available, otherwise keep job_url
     return {
       ...job,
-      job_url: job.search_url,
+      job_url: job.search_url || job.job_url,
     };
   });
 }

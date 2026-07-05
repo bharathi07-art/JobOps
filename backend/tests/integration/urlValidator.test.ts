@@ -8,6 +8,11 @@ const mockedAxios = axios as jest.Mocked<typeof axios>;
 describe('urlValidator', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    jest.resetAllMocks();
+  });
+
+  afterEach(() => {
+    jest.clearAllMocks();
   });
 
   describe('validateJobUrl', () => {
@@ -140,34 +145,66 @@ describe('urlValidator', () => {
     });
 
     it('should handle overall timeout budget exceeded', async () => {
-      // Create a mock that will never resolve quickly
-      mockedAxios.head.mockImplementationOnce(
-        () => new Promise(resolve => setTimeout(() => resolve({ status: 200 }), 50000))
+      // Create jobs that will timeout
+      const slowJobs = [
+        {
+          title: 'Slow Job 1',
+          company: 'SlowCorp 1',
+          job_url: 'https://slow1.com/jobs/1',
+          search_url: 'https://slow1.com/search?q=engineer',
+        },
+        {
+          title: 'Slow Job 2',
+          company: 'SlowCorp 2',
+          job_url: 'https://slow2.com/jobs/2',
+          search_url: 'https://slow2.com/search?q=engineer',
+        },
+      ];
+
+      // Mock head to take a very long time (simulating slow network)
+      mockedAxios.head.mockImplementation(
+        () => new Promise(resolve => setTimeout(() => resolve({ status: 200 } as any), 50000))
       );
 
       const startTime = Date.now();
-      const result = await validateMatchedJobs(mockJobs, 100); // 100ms budget
+      const result = await validateMatchedJobs(slowJobs, 100); // 100ms budget
       const elapsed = Date.now() - startTime;
 
       // Should timeout around 100ms, not wait 50s
       expect(elapsed).toBeLessThan(1000);
-      expect(result).toHaveLength(3);
+      expect(result).toHaveLength(2);
       // When budget is exceeded, all jobs should fall back to search_url
       result.forEach(job => {
         expect(job.job_url).toBe(job.search_url);
       });
-    });
+    }, 15000);
 
     it('should preserve valid jobs even if some validation fails', async () => {
+      const testJobs = [
+        {
+          title: 'Valid Job',
+          company: 'TechCorp',
+          job_url: 'https://example.com/jobs/1',
+          search_url: 'https://example.com/search?q=engineer',
+        },
+        {
+          title: 'Invalid Job',
+          company: 'FailCorp',
+          job_url: 'https://fail.com/jobs/999',
+          search_url: 'https://fail.com/search?q=engineer',
+        },
+      ];
+
       mockedAxios.head
         .mockResolvedValueOnce({ status: 200 } as any) // Job 0: valid
-        .mockRejectedValueOnce(new Error('timeout')); // Job 2: validation error
+        .mockRejectedValueOnce(new Error('timeout')); // Job 1: validation error
 
-      const result = await validateMatchedJobs(mockJobs);
+      // Use sufficient budget to allow validation to complete
+      const result = await validateMatchedJobs(testJobs, 5000);
 
-      expect(result[0].job_url).toBe('https://example.com/jobs/1'); // Unchanged
-      expect(result[2].job_url).toBe('https://startup.com/search?q=designer'); // Fallback
-    });
+      expect(result[0].job_url).toBe('https://example.com/jobs/1'); // Valid, unchanged
+      expect(result[1].job_url).toBe('https://fail.com/search?q=engineer'); // Invalid, fallback
+    }, 15000);
 
     it('should handle empty job list', async () => {
       const result = await validateMatchedJobs([]);
