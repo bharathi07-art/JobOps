@@ -254,8 +254,8 @@ export default function SavedJobsPage() {
                     >
                       <Trash2 className="w-3.5 h-3.5" /> Remove
                     </button>
-                    {job.career_url ? (
-                      <a href={job.career_url} target="_blank" rel="noopener noreferrer"
+                    {job.job_url || job.search_url || job.career_url ? (
+                      <a href={job.job_url || job.search_url || job.career_url} target="_blank" rel="noopener noreferrer"
                         className="flex items-center gap-1.5 px-3 py-1.5 bg-[#FF4500] hover:bg-[#e03e00] text-white text-xs font-medium rounded-lg transition-colors">
                         Apply <ExternalLink className="w-3 h-3" />
                       </a>

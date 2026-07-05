@@ -6,6 +6,7 @@ import LogModel from "../models/Log";
 import AnalyticsModel from "../models/Analytics";
 import { incrementUsage } from "../services/subscriptionService";
 import { extractResumeText, parseAiResponse, validateResumeUpload } from "../utils/resumeProcessing";
+import { validateMatchedJobs } from "../utils/urlValidator";
 
 // ── Analyze Resume ────────────────────────────────────────────────────────────
 export const analyzeResume = async (req: Request, res: Response) => {
@@ -37,14 +38,23 @@ export const analyzeResume = async (req: Request, res: Response) => {
     });
 
     // ── Call Gemini AI ─────────────────────────────────────────────────────
+    // NOTE: Both responseMimeType and google_search tools are enabled. If the
+    // API returns a 400 error, it means this version doesn't support both together.
+    // In that case, remove responseMimeType, rely on explicit JSON instructions,
+    // and strip markdown code fences (```json) from the raw response before parsing.
     const aiResponse = await axios.post(
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${process.env.GEMINI_API_KEY}`,
       {
         generationConfig: { responseMimeType: "application/json" },
+        tools: [{ google_search: {} }], // enables real, current web grounding
         contents: [{
           role: "user",
           parts: [{
-            text: `I will upload my resume. I want you to act as an AI recruiter and Job hunting machine. Analyse my resume in depth to identify the most suitable fresher or entry-level (the role mentioned in resume) role for me to target in India and outside of the India. Find companies across startups, MNCs, service-based, product-based companies currently hiring, make sure to provide the verified ones. Use indeed connector as well to find jobs apart from finding jobs from web search. Match every job opening with my resume and provide the score out of 100 matching with my profile. Create a list of 50 such opportunities. Create a job application categorized with the score with high, medium and low probability.
+            text: `I will upload my resume. I want you to act as an AI recruiter and Job hunting machine. Analyse my resume in depth to identify the most suitable fresher or entry-level (the role mentioned in resume) role for me to target in India and outside of India. Find companies across startups, MNCs, service-based, product-based companies currently hiring, make sure to provide the verified ones.
+
+**CRITICAL: Use web search to find real, currently active job postings.** Do not rely on memory, hallucinations, or pattern-completion for company names, roles, or URLs. Only use URLs that you have directly retrieved from search results.
+
+Match every job opening with my resume and provide a score out of 100 matching with my profile. Create a list of 50 such opportunities. Categorize jobs by match quality: high (>=70%), medium (>=40%), low (<40%).
 
 Resume:
 ${resumeText}
@@ -59,20 +69,22 @@ Return ONLY this exact JSON structure with these exact keys:
     {
       "title": "Job Title",
       "company": "Company Name",
-      "location": "City, India",
+      "location": "City, Country",
       "match_percentage": <number 0-100>,
       "category": "high|medium|low",
       "career_url": "https://careers.companyname.com",
-      "job_url": "https://careers.companyname.com/jobs/junior-developer-12345",
+      "job_url": "https://careers.companyname.com/jobs/specific-job-id" | null,
       "search_url": "https://careers.companyname.com/jobs?q=Developer&location=India"
     }
   ]
 }
-Rules:
-- category must be "high" if match_percentage >= 70, "medium" if >= 40, else "low"
-- career_url must be the real official careers/jobs page URL of the company (no job board URLs)
-- job_url must be the DIRECT URL to the specific job vacancy listing page on the company's own careers portal.
-- search_url must be a URL that pre-fills a search for this job title on the company's careers portal.
+
+**Rules (non-negotiable):**
+- category MUST be "high" if match_percentage >= 70, "medium" if >= 40, else "low"
+- career_url is REQUIRED: the real official careers/jobs page URL of the company (not a job board).
+- search_url is REQUIRED: a URL that pre-fills a search for this job title on the company's careers portal. This must remain valid even if a specific posting is later removed.
+- job_url is OPTIONAL: Set to null unless you retrieved it directly from a real, current search result with high confidence it is a live, direct link to a specific job vacancy.
+- **CRITICAL: Do NOT invent, guess, or pattern-complete a job_url or any numeric ID within one.** If you are not certain a specific URL is real and currently active, set job_url to null. The backend will safely fall back to search_url.
 `
           }]
         }]
@@ -89,6 +101,15 @@ Rules:
 
     const parsed = parseAiResponse(raw);
 
+    // ── Validate matched job URLs (remove hallucinations, fallback to search_url) ──
+    console.log(`Validating ${parsed.matched_jobs?.length ?? 0} job URLs...`);
+    const validatedJobs = await validateMatchedJobs(parsed.matched_jobs || []);
+    const jobsAfterValidation = validatedJobs.filter((j: any) => j.job_url !== null || j.search_url);
+
+    console.log(
+      `URL validation complete: ${jobsAfterValidation.length} jobs with valid fallbacks.`,
+    );
+
     // ── Save AI result to MongoDB ──────────────────────────────────────────
     const savedResult = await AIResultModel.create({
       userId,
@@ -96,11 +117,11 @@ Rules:
       ats_score: parsed.ats_score,
       missing_skills: parsed.missing_skills,
       recommendations: parsed.recommendations,
-      matched_jobs: parsed.matched_jobs,
+      matched_jobs: jobsAfterValidation,
     });
 
     // ── Update Analytics ───────────────────────────────────────────────────
-    const highCount = parsed.matched_jobs?.filter((j: any) => j.category === "high").length ?? 0;
+    const highCount = jobsAfterValidation?.filter((j: any) => j.category === "high").length ?? 0;
 
     await AnalyticsModel.findOneAndUpdate(
       { userId },
@@ -109,7 +130,7 @@ Rules:
         $set: {
           lastResumeScore: parsed.resume_score,
           lastAtsScore: parsed.ats_score,
-          totalJobsMatched: parsed.matched_jobs?.length ?? 0,
+          totalJobsMatched: jobsAfterValidation?.length ?? 0,
           totalHighMatches: highCount,
           updatedAt: new Date(),
         },
@@ -122,7 +143,7 @@ Rules:
       userId,
       action: "ai_analyze",
       status: "success",
-      detail: `Analyzed ${uploadFile.originalname} — ${parsed.matched_jobs?.length ?? 0} jobs matched`,
+      detail: `Analyzed ${uploadFile.originalname} — ${jobsAfterValidation?.length ?? 0} jobs matched (after URL validation)`,
     });
 
     // Increment usage counters
@@ -139,7 +160,7 @@ Rules:
       action: "ai_analyze",
       status: "error",
       detail: error?.message || "Unknown error",
-    }).catch(() => {});
+    }).catch(() => { });
 
     const message = error?.response?.status === 429
       ? 'The AI service is temporarily rate-limited. Please try again shortly.'
