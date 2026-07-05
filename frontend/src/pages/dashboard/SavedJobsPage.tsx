@@ -14,6 +14,8 @@ interface SavedJob {
   match_percentage: number
   category: 'high' | 'medium' | 'low'
   career_url?: string
+  job_url?: string
+  search_url?: string
   savedAt: string
 }
 
