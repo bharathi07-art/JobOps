@@ -8,6 +8,7 @@ WORKDIR /app
 COPY package*.json ./
 
 # 4. Install only production dependencies cleanly
+RUN apk add --no-cache openssl
 RUN npm ci
 
 # 5. Copy the Prisma schema explicitly so the client can build

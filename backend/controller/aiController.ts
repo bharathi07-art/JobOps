@@ -45,8 +45,8 @@ export const analyzeResume = async (req: Request, res: Response) => {
     const aiResponse = await axios.post(
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${process.env.GEMINI_API_KEY}`,
       {
-        generationConfig: { responseMimeType: "application/json" },
-        tools: [{ google_search: {} }], // enables real, current web grounding
+        generationConfig: { responseMimeType: "text/plain" },
+        tools: [], // removed google_search to avoid tool calls
         contents: [{
           role: "user",
           parts: [{
@@ -92,12 +92,22 @@ Return ONLY this exact JSON structure with these exact keys:
       { headers: { "Content-Type": "application/json" }, timeout: 120000 }
     );
 
-    const raw: string = aiResponse?.data?.candidates?.[0]?.content?.parts?.[0]?.text || '';
+    // Extract raw AI response text. If the expected text field is missing, fallback to the entire part JSON.
+    const candidate = aiResponse?.data?.candidates?.[0];
+    let raw: string = candidate?.content?.parts?.[0]?.text || '';
+    if (!raw) {
+      try {
+        // Some responses may return the JSON payload directly in the part object.
+        raw = JSON.stringify(candidate?.content?.parts?.[0] ?? {});
+      } catch {
+        raw = '';
+      }
+    }
     if (!raw) {
       throw new Error('The AI returned an empty response.');
     }
 
-    console.log("RAW AI RESPONSE (first 300):", raw.substring(0, 300));
+    console.log('FULL GEMINI RESPONSE:', JSON.stringify(aiResponse?.data, null, 2));
 
     const parsed = parseAiResponse(raw);
 

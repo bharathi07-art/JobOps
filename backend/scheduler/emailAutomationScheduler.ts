@@ -116,7 +116,7 @@ export const startEmailAutomationScheduler = () => {
             const aiResponse = await axios.post(
               `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${process.env.GEMINI_API_KEY}`,
               {
-                generationConfig: { responseMimeType: "application/json" },
+                generationConfig: { responseMimeType: "text/plain" },
                 contents: [{
                   role: "user",
                   parts: [{
