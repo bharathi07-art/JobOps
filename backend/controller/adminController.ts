@@ -7,12 +7,16 @@ import ResumeModel from '../models/ResumeModel'
 
 async function isRequesterAdmin(req: Request) {
   try {
-    const userId = (req as any).user?.id
-    if (!userId) return false
-    const user = await prisma.user.findUnique({ where: { id: Number(userId) } })
-    return !!user && !!user.isAdmin
+    const userFromToken = (req as any).user;
+    if (userFromToken && userFromToken.isAdmin) {
+      return true;
+    }
+    const userId = (req as any).user?.id;
+    if (!userId) return false;
+    const user = await prisma.user.findUnique({ where: { id: Number(userId) } });
+    return !!user && !!user.isAdmin;
   } catch {
-    return false
+    return false;
   }
 }
 
@@ -239,35 +243,56 @@ export const getSettings = async (req: Request, res: Response) => {
     return res.status(403).json({ message: 'Forbidden' })
   }
   try {
-    let settings = await prisma.adminsettings.findFirst()
+    const settings = await prisma.adminsettings.findFirst();
     if (!settings) {
-      settings = await prisma.adminsettings.create({ data: {} })
+      const created = await prisma.adminsettings.create({ data: {} });
+      return res.json({ success: true, settings: created });
     }
-    res.json({ success: true, settings })
+    return res.json({ success: true, settings });
   } catch (error: any) {
-    res.status(500).json({ message: error.message || 'Failed to fetch settings' })
+    return res.status(500).json({ message: error.message || 'Failed to fetch settings' });
   }
-}
+};
 
 export const updateSettings = async (req: Request, res: Response) => {
   if (!(await isRequesterAdmin(req))) {
     return res.status(403).json({ message: 'Forbidden' })
   }
   try {
-    const data = req.body
-    let settings = await prisma.adminsettings.findFirst()
-    
-    if (!settings) {
-      settings = await prisma.adminsettings.create({ data })
+    const newSettings = req.body; // expecting plain object with settings fields
+    // Try to find existing settings record
+    const existing = await prisma.adminsettings.findFirst();
+    let updated;
+    if (existing) {
+      updated = await prisma.adminsettings.update({
+        where: { id: existing.id },
+        data: newSettings,
+      });
     } else {
-      settings = await prisma.adminsettings.update({
-        where: { id: settings.id },
-        data,
-      })
+      // If no record exists, create one
+      updated = await prisma.adminsettings.create({ data: newSettings });
     }
-    
-    res.json({ success: true, message: 'Settings updated successfully', settings })
+    res.json({ success: true, settings: updated })
   } catch (error: any) {
     res.status(500).json({ message: error.message || 'Failed to update settings' })
   }
-}
+};
+
+export const promoteUser = async (req: Request, res: Response) => {
+  if (!(await isRequesterAdmin(req))) {
+    return res.status(403).json({ message: 'Forbidden' })
+  }
+  const { email } = req.body;
+  if (!email) {
+    return res.status(400).json({ message: 'Email required' });
+  }
+  try {
+    const user = await prisma.user.update({
+      where: { email },
+      data: { isAdmin: true },
+    });
+    return res.status(200).json({ success: true, user });
+  } catch (error: any) {
+    return res.status(500).json({ message: error.message });
+  }
+};

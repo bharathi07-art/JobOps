@@ -10,8 +10,8 @@ type Period = 'weekly' | 'monthly'
 
 export default function AdminRevenue() {
   const [period, setPeriod] = useState<Period>('monthly')
-  const [monthlyRevenue, setMonthlyRevenue] = useState<any[]>([])
-  const [overview, setOverview] = useState<any>({})
+  const [monthlyRevenue, setMonthlyRevenue] = useState<Record<string, number | string>[]>([])
+  const [overview, setOverview] = useState<Record<string, number>>({})
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -32,7 +32,7 @@ export default function AdminRevenue() {
   }, [])
 
   const totalRevenue = overview.totalRevenue ?? 0
-  const monthlyRevTotal = monthlyRevenue.reduce((s: number, m: any) => s + (m.revenue || 0), 0)
+  const monthlyRevTotal = monthlyRevenue.reduce((s: number, m: Record<string, number | string>) => s + ((m.revenue as number) || 0), 0)
 
   const kpis = [
     { label: 'Total Revenue', value: `$${totalRevenue.toLocaleString()}`, growth: 0, icon: DollarSign, color: 'text-[#FF4500]' },

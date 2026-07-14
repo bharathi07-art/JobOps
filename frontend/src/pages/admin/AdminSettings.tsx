@@ -64,7 +64,7 @@ function Toggle({ label, desc, value, onChange }: { label: string; desc: string;
   )
 }
 
-function FieldRow({ label, value, onChange, type = 'text' }: { label: string; value: string | number; onChange: (val: any) => void; type?: string }) {
+function FieldRow({ label, value, onChange, type = 'text' }: { label: string; value: any; onChange: (val: any) => void; type?: string }) {
   return (
     <div className="space-y-1.5">
       <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">{label}</label>
@@ -117,10 +117,6 @@ export default function AdminSettings() {
     auditLogging: true,
   })
 
-  useEffect(() => {
-    fetchSettings()
-  }, [])
-
   const fetchSettings = async () => {
     try {
       setLoading(true)
@@ -130,15 +126,19 @@ export default function AdminSettings() {
       if (!response.ok) throw new Error('Failed to fetch settings')
       const data = await response.json()
       if (data.settings) {
-        setSettings({ ...settings, ...data.settings })
+        setSettings(prev => ({ ...prev, ...data.settings }))
       }
       setError('')
-    } catch (err: any) {
-      setError(err.message || 'Failed to load settings')
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Failed to load settings')
     } finally {
       setLoading(false)
     }
   }
+
+  useEffect(() => {
+    fetchSettings()
+  }, [])
 
   const handleSave = async () => {
     try {
@@ -160,8 +160,8 @@ export default function AdminSettings() {
       
       setSaved(true)
       setTimeout(() => setSaved(false), 2500)
-    } catch (err: any) {
-      setError(err.message || 'Failed to save settings')
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Failed to save settings')
     } finally {
       setSavingState(false)
     }

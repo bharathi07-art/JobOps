@@ -6,7 +6,9 @@
   "directories": {
     "doc": "docs"
   },
-    "scripts": { "test": "npx playwright test" },
+  "scripts": {
+    "test": "npx playwright test"
+  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/bharathi07-art/JobOps.git"
@@ -21,5 +23,8 @@
   "devDependencies": {
     "@playwright/test": "^1.60.0",
     "@types/node": "^25.9.3"
+  },
+  "dependencies": {
+    "mongoose": "^9.7.4"
   }
 }

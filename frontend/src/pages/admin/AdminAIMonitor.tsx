@@ -1,7 +1,7 @@
 import { motion } from 'framer-motion'
 import { Cpu, CheckCircle2, XCircle, Clock, Zap, AlertTriangle } from 'lucide-react'
 import { AdminLayout } from '../../components/layout/AdminLayout'
-import { ACard, SectionHeader, AdminStatCard, GroupedBar, StatusBadge } from '../../components/ui/AdminCharts'
+import { AdminStatCard, StatusBadge, ACard, SectionHeader, GroupedBar } from '../../components/ui/AdminCharts'
 import { useEffect, useState } from 'react'
 import axios from 'axios'
 import { cn } from '../../utils/utils'
@@ -9,6 +9,7 @@ import { cn } from '../../utils/utils'
 export default function AdminAIMonitor() {
   const [stats, setStats] = useState<any>({})
   const [aiUsageData, setAiUsageData] = useState<any[]>([])
+
   const [recentLogs, setRecentLogs] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
 
@@ -18,6 +19,7 @@ export default function AdminAIMonitor() {
         const token = (() => { try { return JSON.parse(localStorage.getItem('userInfo') || 'null')?.token } catch { return null } })()
         const headers = token ? { Authorization: `Bearer ${token}` } : {}
         const res = await axios.get('/api/admin/ai-monitor', { headers })
+        // Assuming API returns stats, aiUsageData, and recentLogs
         setStats(res.data.stats || {})
         setAiUsageData(res.data.aiUsageData || [])
         setRecentLogs(res.data.recentLogs || [])

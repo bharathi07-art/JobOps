@@ -1,0 +1,43 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: jobops-frontend-deployment
+  labels:
+    app: jobops-frontend
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: jobops-frontend
+  template:
+    metadata:
+      labels:
+        app: jobops-frontend
+    spec:
+      containers:
+        - name: frontend-container
+          image: jobops-frontend:v2
+          imagePullPolicy: Never
+          ports:
+            - containerPort: 80
+
+          # 🌟 ADD THIS BLOCK TO FIX THE NOISY NEIGHBOR WARNING:
+          resources:
+            requests:
+              memory: "64Mi"    # Minimum RAM reserved for the frontend container
+              cpu: "100m"       # Minimum CPU allocation (10% of a core)
+            limits:
+              memory: "256Mi"   # Maximum RAM ceiling it can ever touch
+              cpu: "250m"       # Maximum CPU ceiling (25% of a core)
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: jobops-frontend-service
+spec:
+  type: LoadBalancer
+  ports:
+    - port: 3000
+      targetPort: 80
+  selector:
+    app: jobops-frontend

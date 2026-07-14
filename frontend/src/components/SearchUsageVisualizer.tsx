@@ -1,4 +1,4 @@
-import { useSubscription } from '../contexts/SubscriptionContext';
+import { useSubscription } from '../hooks/useSubscription';
 import { Link } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import { cn } from '../utils/utils';

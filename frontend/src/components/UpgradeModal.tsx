@@ -35,12 +35,6 @@ export function UpgradeModal({
   const [plans, setPlans] = useState<Plan[]>([]);
   const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    if (isOpen) {
-      fetchPlans();
-    }
-  }, [isOpen]);
-
   const fetchPlans = async () => {
     try {
       const response = await fetch('/api/subscription/plans');
@@ -50,6 +44,12 @@ export function UpgradeModal({
       console.error('Error fetching plans:', error);
     }
   };
+
+  useEffect(() => {
+    if (isOpen) {
+      fetchPlans();
+    }
+  }, [isOpen]);
 
   const handleUpgrade = async (planId: string) => {
     setLoading(true);

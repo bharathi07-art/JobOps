@@ -37,8 +37,8 @@ export default function ForgotPassword() {
 
       setStep('reset')
       setMessage(data.message || 'Reset code sent successfully')
-    } catch (err: any) {
-      setMessage(err.message || 'Unable to send reset code')
+    } catch (err: unknown) {
+      setMessage(err instanceof Error ? err.message : 'Unable to send reset code')
     } finally {
       setLoading(false)
     }
@@ -63,8 +63,8 @@ export default function ForgotPassword() {
 
       setStep('done')
       setMessage(data.message || 'Password reset successfully')
-    } catch (err: any) {
-      setMessage(err.message || 'Unable to reset password')
+    } catch (err: unknown) {
+      setMessage(err instanceof Error ? err.message : 'Unable to reset password')
     } finally {
       setLoading(false)
     }

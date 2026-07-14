@@ -4,7 +4,7 @@ import { motion } from 'framer-motion'
 import { Sparkles, Eye, EyeOff, Mail, Lock } from 'lucide-react'
 import { Button } from '../components/ui/Button'
 import { Input } from '../components/ui/index'
-import { useSubscription } from '../contexts/SubscriptionContext'
+import { useSubscription } from '../hooks/useSubscription'
 
 export default function Login() {
   const [email, setEmail] = useState<string>('')
@@ -16,7 +16,7 @@ export default function Login() {
 
   
 
-  const handleSubmit =async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
     try{
@@ -44,7 +44,6 @@ export default function Login() {
     }
     catch{
       alert("Failed to fetch data, so pleace try again later")
-
     }
     finally{
       setTimeout(() => setLoading(false), 1500)

@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { Button } from '../components/ui/Button'
-import { useSubscription } from '../contexts/SubscriptionContext'
+import { useSubscription } from '../hooks/useSubscription'
 
 export default function VerifyOTP(){
   const location = useLocation();
@@ -33,7 +33,7 @@ export default function VerifyOTP(){
       } else {
         alert(data?.message || 'OTP verification failed')
       }
-    }catch(err){
+    }catch{
       alert('Network error')
     }finally{
       setLoading(false)

@@ -33,11 +33,11 @@ const activityIcons: Record<string, { icon: string; color: string }> = {
 }
 
 export default function AdminOverview() {
-  const [stats, setStats] = useState<any>(null)
-  const [weeklyVisits, setWeeklyVisits] = useState<any[]>([])
-  const [monthlyRevenue, setMonthlyRevenue] = useState<any[]>([])
-  const [subscriptionPieData, setSubscriptionPieData] = useState<any[]>([])
-  const [recentActivity, setRecentActivity] = useState<any[]>([])
+  const [stats, setStats] = useState<Record<string, number> | null>(null)
+  const [weeklyVisits, setWeeklyVisits] = useState<Record<string, number | string>[]>([])
+  const [monthlyRevenue, setMonthlyRevenue] = useState<Record<string, number | string>[]>([])
+  const [subscriptionPieData, setSubscriptionPieData] = useState<{ label: string; value: number; color: string }[]>([])
+  const [recentActivity, setRecentActivity] = useState<{ id: string; user: string; action: string; time: string; type: string }[]>([])
   const [loading, setLoading] = useState<boolean>(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -56,7 +56,7 @@ export default function AdminOverview() {
         setWeeklyVisits(ovRes.data.weeklyVisits || []);
         setMonthlyRevenue(ovRes.data.monthlyRevenue || []);
         setSubscriptionPieData(ovRes.data.subscriptionPieData || []);
-        setRecentActivity((logsRes.data.logs || []).slice(0, 20).map((l: any) => ({ id: l._id, user: l.userId, action: l.detail, time: new Date(l.createdAt).toLocaleString(), type: l.type || 'login' })));
+        setRecentActivity((logsRes.data.logs || []).slice(0, 20).map((l: { _id: string; userId: string; detail?: string; createdAt: string; type?: string }) => ({ id: l._id, user: l.userId, action: l.detail, time: new Date(l.createdAt).toLocaleString(), type: l.type || 'login' })));
         setLoading(false);
       } catch (err) {
         console.error('Failed to load admin overview', err);
@@ -96,7 +96,7 @@ export default function AdminOverview() {
             <AdminStatCard key={s.key}
               label={s.label}
               value={s.key === 'totalRevenue'
-                ? stats ? `$${(stats[s.key] ?? 0).toLocaleString()}` : '—'
+                ? stats ? `$${((stats[s.key] as number) ?? 0).toLocaleString()}` : '—'
                 : stats ? (stats[s.key] ?? '—') : '—'}
               growth={0}
               icon={s.icon}

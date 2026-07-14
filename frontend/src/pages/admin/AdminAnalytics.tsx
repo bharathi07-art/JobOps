@@ -17,10 +17,10 @@ const chartTypes: { id: ChartType; label: string; icon: React.ElementType }[] = 
 
 export default function AdminAnalytics() {
   const [chartType, setChartType] = useState<ChartType>('bar')
-  const [weeklyVisits, setWeeklyVisits] = useState<any[]>([])
-  const [monthlyRevenue, setMonthlyRevenue] = useState<any[]>([])
-  const [aiUsageData, setAiUsageData] = useState<any[]>([])
-  const [subscriptionPieData, setSubscriptionPieData] = useState<any[]>([])
+  const [weeklyVisits, setWeeklyVisits] = useState<Record<string, number | string>[]>([])
+  const [monthlyRevenue, setMonthlyRevenue] = useState<Record<string, number | string>[]>([])
+  const [aiUsageData, setAiUsageData] = useState<Record<string, number | string>[]>([])
+  const [subscriptionPieData, setSubscriptionPieData] = useState<{ label: string; value: number; color: string }[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -45,7 +45,7 @@ export default function AdminAnalytics() {
     load()
   }, [])
 
-  function renderChart(data: any[], xKey: string, yKey: string, color: string) {
+  function renderChart(data: Record<string, number | string>[], xKey: string, yKey: string, color: string) {
     if (loading) return <div className="h-36 bg-gray-100 rounded-xl animate-pulse" />
     if (chartType === 'donut') return <DonutChart data={subscriptionPieData} size={130} />
     if (chartType === 'line' || chartType === 'area') return <LineChart data={data} xKey={xKey} yKey={yKey} color={color} height={150} />
@@ -101,8 +101,8 @@ export default function AdminAnalytics() {
                 ? <div className="h-36 bg-gray-100 rounded-xl animate-pulse" />
                 : chartType === 'donut'
                   ? <DonutChart data={[
-                      { label: 'Success', value: aiUsageData.reduce((s, d) => s + d.success, 0), color: '#22c55e' },
-                      { label: 'Failed', value: aiUsageData.reduce((s, d) => s + d.failed, 0), color: '#ef4444' },
+                      { label: 'Success', value: aiUsageData.reduce((s, d) => s + Number(d.success), 0), color: '#22c55e' },
+                      { label: 'Failed', value: aiUsageData.reduce((s, d) => s + Number(d.failed), 0), color: '#ef4444' },
                     ]} size={130} />
                   : <GroupedBar data={aiUsageData} xKey="day" keys={['success', 'failed']} colors={['#22c55e', '#ef4444']} height={150} />
               }

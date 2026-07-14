@@ -37,7 +37,7 @@ export default   function AIChatbot() {
         : data?.message || 'Sorry, I could not find an answer right now. Please try again.'
 
       setMessages(prev => [...prev, { role: 'ai', text: reply }])
-    } catch (error) {
+    } catch {
       setMessages(prev => [...prev, { role: 'ai', text: 'Oops! I could not reach the AI service right now. Please try again later.' }])
     } finally {
       setLoading(false)

@@ -2,7 +2,7 @@ import { useState, useEffect } from "react"
 import { Link, useLocation } from "react-router-dom"
 import { motion, AnimatePresence } from "framer-motion"
 import { LayoutDashboard, Upload, Sparkles, Bookmark, Activity, Settings, User, LogOut, Menu, X, MessageSquare, ClipboardList, HelpCircle, Lock } from "lucide-react"
-import { useSubscription } from "../../contexts/SubscriptionContext"
+import { useSubscription } from "../../hooks/useSubscription"
 import { useUpgradePrompt } from "../../hooks/useUpgradePrompt"
 import { cn } from "../../utils/utils"
 
@@ -32,6 +32,8 @@ function SideBar() {
   const { pathname } = useLocation()
   const [isMobileOpen, setIsMobileOpen] = useState(false)
   const [user, setUser] = useState(parseUser)
+  const { isPremium } = useSubscription()
+  const { showUpgradeModal } = useUpgradePrompt({})
 
   // Re-read whenever Settings saves to localStorage
   useEffect(() => {
@@ -98,11 +100,8 @@ function SideBar() {
           <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
                       {navItems.map((item) => {
                         const isActive = pathname === item.to
-                        // define which routes are premium-locked for Free users
                         const premiumRoutes = ["/dashboard/upload", "/dashboard/jobs", "/dashboard/saved", "/dashboard/applications"]
                         const isPremiumRoute = premiumRoutes.includes(item.to)
-                        const { isPremium } = useSubscription()
-                        const { showUpgradeModal } = useUpgradePrompt({ featureName: item.label })
 
                         if (isPremiumRoute && !isPremium) {
                           return (

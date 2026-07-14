@@ -5,7 +5,7 @@ import { Sparkles, ArrowRight, Briefcase, TrendingUp, Activity, AlertCircle, Map
 import { DashboardLayout } from '../../components/layout/DashboardLayout'
 import { Card, StatCard } from '../../components/ui/index'
 import { weeklyActivity } from '../../data/mockData'
-import { useSubscription } from '../../contexts/SubscriptionContext'
+import { useSubscription } from '../../hooks/useSubscription'
 import SetPasswordModal from '../../components/SetPasswordModal'
 import UsageBanner from '../../components/UsageBanner'
 import SearchUsageVisualizer from '../../components/SearchUsageVisualizer'

@@ -34,3 +34,4 @@ export function Button({ variant = 'primary', size = 'md', loading, children, cl
     </motion.button>
   )
 }
+

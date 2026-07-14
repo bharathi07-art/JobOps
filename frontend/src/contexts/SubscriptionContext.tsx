@@ -103,20 +103,16 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     refreshSubscription();
-
-    // Re-fetch subscription data when settings are updated
     window.addEventListener('userInfoUpdated', refreshSubscription);
     return () => window.removeEventListener('userInfoUpdated', refreshSubscription);
   }, []);
 
-  // show first-time onboarding modal when a newly registered user lands (no subscription and just created)
   useEffect(() => {
     if (!loading && subscription && !subscription.subscriptionPlan) {
-      // show modal only for first time (no plan stored)
       const wasShown = localStorage.getItem('firstTimeSubscriptionShown');
       if (!wasShown) {
-        setShowFirstTimeModal(true);
         localStorage.setItem('firstTimeSubscriptionShown', '1');
+        setShowFirstTimeModal(true);
       }
     }
   }, [loading, subscription]);
@@ -270,10 +266,11 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
   );
 }
 
-export function useSubscription() {
+export const useSubscription = () => {
   const context = useContext(SubscriptionContext);
   if (context === undefined) {
-    throw new Error('useSubscription must be used within SubscriptionProvider');
+    throw new Error('useSubscription must be used within a SubscriptionProvider');
   }
   return context;
-}
+};
+export { SubscriptionContext };

@@ -764,6 +764,19 @@ on:
 
 ---
 
+## 🛠 Skills & Technologies
+
+- **Docker**: Containerization of both frontend and backend services for consistent development and production environments.
+- **Kubernetes**: Orchestration for scaling deployments, managing pods, services, and ingress configurations.
+- **GitHub Actions**: CI/CD pipeline automating linting, testing (Jest, Playwright), building Docker images, and deploying to Kubernetes clusters.
+- **GitHub Packages / Docker Hub**: Registry for storing built Docker images.
+- **Infrastructure as Code**: Helm charts and Kubernetes manifests for declarative deployment.
+- **Monitoring & Logging**: Integrated with Prometheus and Grafana for performance metrics, and Loki for log aggregation.
+- **Security Scanning**: Trivy scans Docker images for vulnerabilities during CI.
+- **Continuous Deployment**: Automated rollout to staging and production environments upon successful pipeline execution.
+
+---
+
 ## 🤝 Contributing
 
 Contributions are welcome! Please follow these steps:
@@ -792,6 +805,13 @@ This project is licensed under the **ISC License**. See the [LICENSE](LICENSE) f
 <div align="center">
 
 **Built with precision by [@bharathi07-art](https://github.com/bharathi07-art)**
+
+## 📈 Project Stage
+
+- **Current Stage:** MVP (Minimum Viable Product) – core recruitment automation, AI resume analysis, subscription management, and email automation are functional.
+- **Stability:** Backend unit tests and Playwright E2E tests are passing. CI pipeline validates on every push.
+- **Next Goals:** Containerize services with Docker, deploy to Kubernetes, add advanced analytics dashboards, and improve AI model integration.
+
 
 ⭐ Star this repository if you found it useful!
 

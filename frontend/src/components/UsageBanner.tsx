@@ -1,8 +1,8 @@
-import { useSubscription } from '../contexts/SubscriptionContext';
+import { useSubscription } from '../hooks/useSubscription';
 import { Link } from 'react-router-dom';
 
 export default function UsageBanner() {
-  const { subscription, isPremium, canPerformAction: _canPerformAction } = useSubscription();
+  const { subscription, isPremium } = useSubscription();
 
   if (isPremium || !subscription) return null;
 

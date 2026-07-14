@@ -114,11 +114,13 @@ Return ONLY this exact JSON structure with these exact keys:
     // ── Validate matched job URLs (remove hallucinations, fallback to search_url) ──
     console.log(`Validating ${parsed.matched_jobs?.length ?? 0} job URLs...`);
     const validatedJobs = await validateMatchedJobs(parsed.matched_jobs || []);
+    // Keep only jobs that have a direct link or a pre-filled search URL
     const jobsAfterValidation = validatedJobs.filter((j: any) => j.job_url !== null || j.search_url);
-
-    console.log(
-      `URL validation complete: ${jobsAfterValidation.length} jobs with valid fallbacks.`,
-    );
+    // If a job lacks a direct URL, remove the generic career_url to avoid fallback in the UI
+    const refinedJobs = jobsAfterValidation.map((j: any) => ({
+      ...j,
+      career_url: j.job_url ? j.career_url : null,
+    }));
 
     // ── Save AI result to MongoDB ──────────────────────────────────────────
     const savedResult = await AIResultModel.create({
@@ -127,11 +129,11 @@ Return ONLY this exact JSON structure with these exact keys:
       ats_score: parsed.ats_score,
       missing_skills: parsed.missing_skills,
       recommendations: parsed.recommendations,
-      matched_jobs: jobsAfterValidation,
+      matched_jobs: refinedJobs,
     });
 
     // ── Update Analytics ───────────────────────────────────────────────────
-    const highCount = jobsAfterValidation?.filter((j: any) => j.category === "high").length ?? 0;
+    const highCount = refinedJobs?.filter((j: any) => j.category === "high").length ?? 0;
 
     await AnalyticsModel.findOneAndUpdate(
       { userId },

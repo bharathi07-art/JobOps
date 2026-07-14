@@ -81,8 +81,9 @@ export const useAdminData = () => {
           notifications: notifRes.data,
           recentActivity: activityRes.data,
         });
-      } catch (e: any) {
-        setError(e.message || 'Failed to load admin data');
+      } catch (e: unknown) {
+        const err = e as { message?: string }
+        setError(err.message || 'Failed to load admin data');
         console.error(e);
       } finally {
         setLoading(false);

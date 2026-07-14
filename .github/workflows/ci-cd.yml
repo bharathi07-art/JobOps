@@ -173,12 +173,75 @@ jobs:
           name: playwright-report
           path: playwright-report/
           retention-days: 30
-
-  # JOB 4: Deploy Application (CD)
-  deploy:
+  # JOB 4: Build and push Docker images (only runs if all CI jobs pass)
+  docker-build-push:
     needs: [backend-ci, frontend-ci, e2e-ci]
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    permissions:
+      contents: read
+      packages: write
     steps:
-      - name: Deploy Application
-        run: echo "Deploying application to production server..."
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push backend image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./backend
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository }}/backend:${{ github.sha }}
+            ghcr.io/${{ github.repository }}/backend:latest
+
+      - name: Build and push frontend image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./frontend
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository }}/frontend:${{ github.sha }}
+            ghcr.io/${{ github.repository }}/frontend:latest
+
+  # JOB 5: Deploy application (CD)
+  deploy:
+    needs: docker-build-push
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    steps:
+      - name: Deploy to production server over SSH
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          script: |
+            echo ${{ secrets.GITHUB_TOKEN }} | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+
+            docker pull ghcr.io/${{ github.repository }}/backend:latest
+            docker pull ghcr.io/${{ github.repository }}/frontend:latest
+
+            docker stop jobops-backend-container || true
+            docker rm jobops-backend-container || true
+            docker stop jobops-frontend-container || true
+            docker rm jobops-frontend-container || true
+
+            docker run -d \
+              --name jobops-backend-container \
+              --env-file /home/deploy/.env \
+              -p 5000:5000 \
+              --restart unless-stopped \
+              ghcr.io/${{ github.repository }}/backend:latest
+
+            docker run -d \
+              --name jobops-frontend-container \
+              -p 80:80 \
+              --restart unless-stopped \
+              ghcr.io/${{ github.repository }}/frontend:latest

@@ -20,9 +20,12 @@ RUN npx prisma generate
 # 7. Copy the rest of your backend source code files
 COPY . .
 
-# 8. Expose the port your Express server listens on
+# 8. Compile TypeScript to JavaScript
+RUN npm run build
+
+# 9. Expose the port your Express server listens on
 EXPOSE 5000
 
-# 9. The runtime execution command to launch your application
-CMD ["npm", "run", "start"]
+# 10. Run the compiled JS directly (no ts-node, no nodemon)
+CMD ["node", "dist/server.js"]
 

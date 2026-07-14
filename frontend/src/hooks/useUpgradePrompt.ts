@@ -1,5 +1,5 @@
 import { useCallback } from 'react';
-import { useSubscription } from '../contexts/SubscriptionContext';
+import { useSubscription } from './useSubscription';
 
 interface UseUpgradePromptOptions {
   featureName?: string;
@@ -7,12 +7,13 @@ interface UseUpgradePromptOptions {
   customMessage?: string;
 }
 
-export function useUpgradePrompt(_options: UseUpgradePromptOptions = {}) {
+export function useUpgradePrompt(options: UseUpgradePromptOptions = {}) {
+  void options;
   const { canPerformAction, isPremium, showUpgradeModal: globalShowUpgradeModal } = useSubscription();
 
   const showUpgradeModal = useCallback(
     (
-      _newReason: 'usage-limit' | 'feature-locked' | 'custom' = 'feature-locked',
+      _reason: 'usage-limit' | 'feature-locked' | 'custom' = 'feature-locked',
       feature = 'Premium Feature'
     ) => {
       globalShowUpgradeModal(feature);

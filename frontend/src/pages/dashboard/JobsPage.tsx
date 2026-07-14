@@ -521,9 +521,9 @@ function JobCard({ job, index, saved, onSave }: {
     setSaving(false)
   }
 
-  // Priority: direct job listing > pre-filled search > general careers page
-  const applyUrl = job.job_url || job.search_url || job.career_url
-  const applyLinkType = job.job_url ? 'direct' : job.search_url ? 'search' : 'careers'
+  // Priority: direct job listing > pre-filled search (no generic careers page)
+  const applyUrl = job.job_url || job.search_url;
+  const applyLinkType = job.job_url ? 'direct' : (job.search_url ? 'search' : 'careers');
 
   const handleApplyConfirm = () => {
     setShowConfirm(false)

@@ -1,4 +1,13 @@
-import 'dotenv/config';
+// Load .env using an absolute path anchored to this file's directory.
+// This ensures the correct .env is found regardless of which directory
+// nodemon / ts-node is launched from (fixes "injected env (0)" on Windows).
+import path from 'path';
+import dotenv from 'dotenv';
+dotenv.config({ path: path.resolve(__dirname, '.env') });
+
+import { validateEnv } from './config/validateEnv';
+validateEnv();
+
 import express from "express";
 import type { Request, Response } from "express";
 import cors from "cors";
@@ -46,7 +55,7 @@ app.get("/", (req: Request, res: Response) => {
 
 app.use(
   session({
-    secret: "jobopssecret",
+    secret: process.env.SESSION_SECRET || 'jobopssecret',
     resave: false,
     saveUninitialized: false,
   })

@@ -20,7 +20,7 @@ export default function FeedbackForm() {
       const raw = localStorage.getItem('userInfo')
       const token = raw ? JSON.parse(raw).token : null
 
-      const headers: any = { 'Content-Type': 'application/json' }
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' }
       if (token) headers.Authorization = `Bearer ${token}`
 
       const res = await axios.post('/api/feedback/submit', { subject, message, type, priority }, { headers })
@@ -34,24 +34,25 @@ export default function FeedbackForm() {
       } else {
         setError(res.data?.message || 'Failed to submit')
       }
-    } catch (err: any) {
-      setError(err.response?.data?.message || err.message || 'Server error')
+    } catch (err: unknown) {
+      const e = err as { response?: { data?: { message?: string } }; message?: string }
+      setError(e.response?.data?.message || e.message || 'Server error')
     } finally {
       setLoading(false)
       setTimeout(() => setSuccess(null), 4000)
     }
   }
 
-  const [myFeedbacks, setMyFeedbacks] = useState<any[]>([])
+  const [myFeedbacks, setMyFeedbacks] = useState<{ id: number; subject: string; message: string; type: string; priority: string; status: string; reply?: string; createdAt: string }[]>([])
 
   const loadMyFeedbacks = async () => {
     try {
       const raw = localStorage.getItem('userInfo')
       const token = raw ? JSON.parse(raw).token : null
-      const headers: any = token ? { Authorization: `Bearer ${token}` } : {}
+      const headers: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {}
       const res = await axios.get('/api/feedback/mine', { headers })
       if (res.data && res.data.feedbacks) setMyFeedbacks(res.data.feedbacks)
-    } catch (err) {
+    } catch {
       // ignore
     }
   }

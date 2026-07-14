@@ -1,5 +1,5 @@
 import { useState, useCallback, useRef } from 'react'
-import { useSubscription } from '../../contexts/SubscriptionContext'
+import { useSubscription } from '../../hooks/useSubscription'
 import { useUpgradePrompt } from '../../hooks/useUpgradePrompt'
 import { motion, AnimatePresence } from 'framer-motion'
 import {

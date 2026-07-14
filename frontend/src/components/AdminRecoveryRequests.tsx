@@ -27,10 +27,6 @@ export default function AdminRecoveryRequests() {
   const [expandedId, setExpandedId] = useState<number | null>(null);
   const [actionLoading, setActionLoading] = useState<number | null>(null);
 
-  useEffect(() => {
-    fetchRecoveryRequests();
-  }, [statusFilter]);
-
   const fetchRecoveryRequests = async () => {
     try {
       setIsLoading(true);
@@ -61,6 +57,10 @@ export default function AdminRecoveryRequests() {
       setIsLoading(false);
     }
   };
+
+  useEffect(() => {
+    fetchRecoveryRequests();
+  }, [statusFilter]);
 
   const handleApprove = async (requestId: number) => {
     setActionLoading(requestId);
@@ -167,7 +167,7 @@ export default function AdminRecoveryRequests() {
           {['All', 'Pending', 'Approved', 'Rejected'].map((status) => (
             <button
               key={status}
-              onClick={() => setStatusFilter(status as any)}
+              onClick={() => setStatusFilter(status as 'All' | 'Pending' | 'Approved' | 'Rejected')}
               className={cn(
                 'px-4 py-2 rounded-lg text-sm font-medium transition-all',
                 statusFilter === status

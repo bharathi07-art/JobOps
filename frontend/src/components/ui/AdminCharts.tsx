@@ -1,3 +1,5 @@
+import * as React from 'react'
+
 import { motion } from 'framer-motion'
 import { TrendingUp, TrendingDown } from 'lucide-react'
 import { cn } from '../../utils/utils'
@@ -37,10 +39,10 @@ export function AdminStatCard({
 export function BarChart({
   data, xKey, yKey, color = '#FF4500', label, height = 140
 }: {
-  data: Record<string, any>[]
+  data: Array<Record<string, number | string>>
   xKey: string; yKey: string; color?: string; label?: string; height?: number
 }) {
-  const max = Math.max(...data.map(d => d[yKey]), 1)
+  const max = Math.max(...data.map(d => Number(d[yKey] ?? 0)), 1)
   return (
     <div>
       {label && <p className="text-xs text-gray-400 mb-3">{label}</p>}
@@ -49,7 +51,7 @@ export function BarChart({
           <div key={i} className="flex-1 flex flex-col items-center gap-1 group">
             <div className="relative w-full flex items-end" style={{ height: height - 20 }}>
               <motion.div
-                initial={{ height: 0 }} animate={{ height: `${(d[yKey] / max) * (height - 20)}px` }}
+                initial={{ height: 0 }} animate={{ height: `${(Number(d[yKey]) / max) * (height - 20)}px` }}
                 transition={{ duration: 0.6, delay: i * 0.04 }}
                 style={{ backgroundColor: color }}
                 className="w-full rounded-t-md relative">
@@ -70,13 +72,13 @@ export function BarChart({
 export function LineChart({
   data, xKey, yKey, color = '#FF4500', height = 120
 }: {
-  data: Record<string, any>[]; xKey: string; yKey: string; color?: string; height?: number
+  data: Record<string, number | string>[]; xKey: string; yKey: string; color?: string; height?: number
 }) {
-  const values = data.map(d => d[yKey])
-  const max = Math.max(...values, 1)
-  const min = Math.min(...values)
+  const numericValues = data.map(d => Number(d[yKey] ?? 0))
+  const max = Math.max(...data.map(d => Number(d[yKey] ?? 0)), 1)
+  const min = Math.min(...numericValues)
   const w = 100 / (data.length - 1)
-  const pts = values.map((v, i) => `${i * w},${height - ((v - min) / (max - min || 1)) * (height - 10) - 5}`)
+  const pts = numericValues.map((v, i) => `${i * w},${height - ((v - min) / (max - min || 1)) * (height - 10) - 5}`)
   const polyline = pts.join(' ')
   const area = `0,${height} ${polyline} ${(data.length - 1) * w},${height}`
 
@@ -125,20 +127,21 @@ export function DonutChart({ data, size = 120 }: {
     )
   }
 
-  let offset = 0
   const r = 40; const cx = 50; const cy = 50
   const circ = 2 * Math.PI * r
+
+  const segments = data.map((seg, i) => {
+    const pct = seg.value / total
+    const dash = pct * circ
+    const gap = circ - dash
+    const rotate = (data.slice(0, i).reduce((acc, s) => acc + s.value / total, 0)) * 360 - 90
+    return { seg, dash, gap, rotate, i }
+  })
 
   return (
     <div className="flex items-center gap-6">
       <svg viewBox="0 0 100 100" style={{ width: size, height: size }} className="shrink-0">
-        {data.map((seg, i) => {
-          const pct = seg.value / total
-          const dash = pct * circ
-          const gap = circ - dash
-          const rotate = offset * 360 - 90
-          offset += pct
-          return (
+        {segments.map(({ seg, dash, gap, rotate, i }) => (
             <motion.circle key={i} cx={cx} cy={cy} r={r}
               fill="none" stroke={seg.color} strokeWidth="18"
               strokeDasharray={`${dash} ${gap}`}
@@ -147,8 +150,7 @@ export function DonutChart({ data, size = 120 }: {
               initial={{ strokeDasharray: `0 ${circ}` }}
               animate={{ strokeDasharray: `${dash} ${gap}` }}
               transition={{ duration: 0.8, delay: i * 0.15 }} />
-          )
-        })}
+          ))}
         <circle cx={cx} cy={cy} r={28} fill="white" />
         <text x={cx} y={cy - 4} textAnchor="middle" fontSize="10" fontWeight="bold" fill="#1E1E1E">
           {total.toLocaleString()}
@@ -172,10 +174,10 @@ export function DonutChart({ data, size = 120 }: {
 export function GroupedBar({
   data, xKey, keys, colors, height = 140
 }: {
-  data: Record<string, any>[]; xKey: string
+  data: Record<string, number | string>[]; xKey: string
   keys: string[]; colors: string[]; height?: number
 }) {
-  const max = Math.max(...data.flatMap(d => keys.map(k => d[k])), 1)
+  const max = Math.max(...data.flatMap(d => keys.map(k => Number(d[k] ?? 0))), 1)
   return (
     <div className="flex items-end gap-2" style={{ height }}>
       {data.map((d, i) => (
@@ -183,7 +185,7 @@ export function GroupedBar({
           <div className="flex items-end gap-0.5 w-full" style={{ height: height - 20 }}>
             {keys.map((k, ki) => (
               <motion.div key={k}
-                initial={{ height: 0 }} animate={{ height: `${(d[k] / max) * (height - 20)}px` }}
+                initial={{ height: 0 }} animate={{ height: `${(Number(d[k]) / max) * (height - 20)}px` }}
                 transition={{ duration: 0.6, delay: i * 0.04 + ki * 0.05 }}
                 style={{ backgroundColor: colors[ki] }}
                 className="flex-1 rounded-t-sm" />

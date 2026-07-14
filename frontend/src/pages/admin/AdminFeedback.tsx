@@ -20,7 +20,7 @@ type Feedback = {
   archived?: boolean
   important?: boolean
   reply?: string
-  raw?: any
+  raw?: Record<string, unknown>
 }
 
 const catColors: Record<string, string> = {
@@ -49,7 +49,7 @@ export default function AdminFeedback() {
         const token = (() => { try { return JSON.parse(localStorage.getItem('userInfo')||'null')?.token } catch { return null } })()
         const headers = token ? { Authorization: `Bearer ${token}` } : {}
         const res = await axios.get('/api/feedback', { headers })
-        const feedbacks = (res.data.feedbacks || []).map((f:any) => ({
+        const feedbacks = (res.data.feedbacks || []).map((f: { id: number; user?: { name?: string; email?: string }; type?: string; message?: string; createdAt: string; priority?: string; status?: string; reply?: string }) => ({
           id: String(f.id),
           name: f.user?.name || 'User',
           email: f.user?.email || '',
@@ -113,8 +113,9 @@ export default function AdminFeedback() {
       } else {
         setReplyError(res.data?.message || 'Failed to send reply')
       }
-    } catch (err: any) {
-      const errMsg = err.response?.data?.message || err.message || 'Failed to send reply'
+    } catch (err: unknown) {
+      const e = err as { response?: { data?: { message?: string } }; message?: string }
+      const errMsg = e.response?.data?.message || e.message || 'Failed to send reply'
       setReplyError(errMsg)
       console.error('Reply failed:', err)
     } finally {
@@ -205,7 +206,7 @@ export default function AdminFeedback() {
                       {(f.raw?.reply || f.reply) && (
                         <div className="mt-3 p-3 bg-white border rounded text-sm text-gray-700">
                           <div className="text-xs text-gray-500 mb-1">Reply:</div>
-                          {f.raw?.reply || f.reply}
+                          {String(f.raw?.reply || f.reply)}
                         </div>
                       )}
 
