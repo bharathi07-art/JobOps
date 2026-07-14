@@ -235,6 +235,12 @@ export const logoutUser = async (req: Request, res: Response) => {
     sameSite: 'strict' as const,
     path: '/',
   });
+  res.clearCookie('admin_token', {
+    httpOnly: true,
+    secure: isProduction,
+    sameSite: 'strict' as const,
+    path: '/',
+  });
   return res.json({ message: 'Logged out successfully' });
 };
 
