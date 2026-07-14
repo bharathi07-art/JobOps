@@ -48,6 +48,11 @@ passport.use(new GoogleStrategy(
   console.warn('⚠️ Google OAuth disabled: GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET are not set.');
 }
 
+// ── Serialize / Deserialize (registered once, shared by all strategies) ─────
+// serializeUser stores only the user ID in the session.
+// deserializeUser fetches a fresh row from MySQL on every session-authenticated
+// request — so req.user.isAdmin always reflects the current DB value, not a
+// snapshot from when the session was first created.
 passport.serializeUser((user, done) => {
   done(null, (user as any).id);
 });
@@ -55,7 +60,21 @@ passport.serializeUser((user, done) => {
 passport.deserializeUser(async (id: string | number, done) => {
   try {
     const userId = typeof id === "string" ? Number(id) : id;
-    const user = await prisma.user.findUnique({ where: { id: userId } });
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        password: true,
+        isAdmin: true,
+        avatar: true,
+        googleID: true,
+        githubID: true,
+        subscriptionPlan: true,
+        subscriptionStatus: true,
+      },
+    });
     done(null, user);
   } catch (error) {
     done(error as Error);

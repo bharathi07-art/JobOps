@@ -13,6 +13,7 @@ export default function AdminSubscriptions() {
   const [subscriptions, setSubscriptions] = useState<any[]>([])
   const [subscriptionPieData, setSubscriptionPieData] = useState<any[]>([])
   const [adminStats, setAdminStats] = useState<any>({})
+  const [revenueStats, setRevenueStats] = useState({ totalRevenue: 0, monthlyRevenue: 0 })
   const statGrowth = { totalSubscribers: 0, monthlySubscribers: 0, yearlySubscribers: 0 }
   const [planFilters, setPlanFilters] = useState<string[]>(['All'])
   const [search, setSearch] = useState('')
@@ -28,6 +29,7 @@ export default function AdminSubscriptions() {
         const subs = subsRes.data.subscriptions || []
         setSubscriptions(subs)
         setAdminStats({ totalSubscribers: subs.filter((s: any) => s.plan === 'Yearly' || s.plan === 'Monthly').length, monthlySubscribers: subs.filter((s:any)=>s.plan==='Monthly').length, yearlySubscribers: subs.filter((s:any)=>s.plan==='Yearly').length })
+        setRevenueStats({ totalRevenue: subsRes.data.totalRevenue ?? 0, monthlyRevenue: subsRes.data.monthlyRevenue ?? 0 })
         setSubscriptionPieData(Object.entries(subs.reduce((acc:any, s:any) => { acc[s.plan] = (acc[s.plan]||0) + 1; return acc }, {})).map(([label, value])=>({ label, value, color: '#94a3b8' })))
         setPlanFilters(['All', ...(Array.from(new Set(subs.map((s: any) => s.plan).filter(Boolean))) as string[])])
       } catch (err) {
@@ -49,7 +51,7 @@ export default function AdminSubscriptions() {
         {/* Revenue stat cards */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
           <AdminStatCard label="Total Subscribers" value={adminStats.totalSubscribers ?? 0} growth={statGrowth.totalSubscribers ?? 0} icon={Users} color="text-[#FF4500]" delay={0} />
-          <AdminStatCard label="Monthly Revenue" value={`$${(48320).toLocaleString()}`} growth={18.9} icon={DollarSign} color="text-green-600" delay={0.05} />
+          <AdminStatCard label="Monthly Revenue" value={`$${revenueStats.monthlyRevenue.toLocaleString()}`} growth={0} icon={DollarSign} color="text-green-600" delay={0.05} />
           <AdminStatCard label="Yearly Subscribers" value={adminStats.yearlySubscribers ?? 0} growth={statGrowth.yearlySubscribers ?? 0} icon={TrendingUp} color="text-purple-600" delay={0.1} />
           <AdminStatCard label="Monthly Subscribers" value={adminStats.monthlySubscribers ?? 0} growth={statGrowth.monthlySubscribers ?? 0} icon={CreditCard} color="text-blue-600" delay={0.15} />
         </div>
@@ -78,12 +80,12 @@ export default function AdminSubscriptions() {
             <SectionHeader title="Revenue Breakdown" subtitle="Estimated metrics" />
             <div className="grid grid-cols-2 gap-3">
               {[
-                { label: 'Weekly Revenue', value: '$11,200', change: '+8.4%', positive: true },
-                { label: 'Monthly Revenue', value: '$48,320', change: '+18.9%', positive: true },
-                { label: 'Yearly Revenue', value: '$421,800', change: '+22.3%', positive: true },
-                { label: 'Churn Rate', value: '3.2%', change: '-0.8%', positive: true },
-                { label: 'Conversion Rate', value: '18.2%', change: '+2.1%', positive: true },
-                { label: 'Avg Revenue/User', value: '$20.6', change: '+4.5%', positive: true },
+                { label: 'Total Revenue', value: `$${revenueStats.totalRevenue.toLocaleString()}`, change: '', positive: true },
+                { label: 'Monthly Revenue', value: `$${revenueStats.monthlyRevenue.toLocaleString()}`, change: '', positive: true },
+                { label: 'Monthly Subscribers', value: String(adminStats.monthlySubscribers ?? 0), change: '', positive: true },
+                { label: 'Yearly Subscribers', value: String(adminStats.yearlySubscribers ?? 0), change: '', positive: true },
+                { label: 'Total Paid', value: String(adminStats.totalSubscribers ?? 0), change: '', positive: true },
+                { label: 'Free Users', value: String(subscriptions.filter((s:any) => s.plan === 'Free').length), change: '', positive: true },
               ].map(m => (
                 <div key={m.label} className="bg-gray-50 rounded-xl p-3">
                   <p className="text-xs text-gray-500">{m.label}</p>

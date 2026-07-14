@@ -120,8 +120,10 @@ export default function AdminSettings() {
   const fetchSettings = async () => {
     try {
       setLoading(true)
+      // Use the same token source as every other admin component
+      const token = (() => { try { return JSON.parse(localStorage.getItem('userInfo') || 'null')?.token } catch { return null } })()
       const response = await fetch('/api/admin/settings', {
-        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` },
+        headers: { 'Authorization': `Bearer ${token}` },
       })
       if (!response.ok) throw new Error('Failed to fetch settings')
       const data = await response.json()
@@ -144,11 +146,12 @@ export default function AdminSettings() {
     try {
       setSavingState(true)
       setError('')
+      const token = (() => { try { return JSON.parse(localStorage.getItem('userInfo') || 'null')?.token } catch { return null } })()
       const response = await fetch('/api/admin/settings', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          'Authorization': `Bearer ${token}`,
         },
         body: JSON.stringify(settings),
       })

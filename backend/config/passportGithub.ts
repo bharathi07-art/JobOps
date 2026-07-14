@@ -52,18 +52,7 @@ passport.use(new GitHubStrategy(
   }
 ));
 
-passport.serializeUser((user, done) => {
-  done(null, (user as any).id);
-});
-
-passport.deserializeUser(async (id: string | number, done) => {
-  try {
-    const userId = typeof id === 'string' ? Number(id) : id;
-    const user = await prisma.user.findUnique({ where: { id: userId } });
-    done(null, user);
-  } catch (error) {
-    done(error as Error);
-  }
-});
+// serializeUser / deserializeUser are registered once in config/passport.ts.
+// Do not register them here — duplicate registrations silently overwrite each other.
 
 export default passport;
