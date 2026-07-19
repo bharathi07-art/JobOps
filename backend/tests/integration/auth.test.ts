@@ -10,7 +10,7 @@ app.use('/api/user',authRoutes);
 
 describe("Authentication API integration test",()=>{
     // Clean up or seed test data before running the test suite
-    beforeAll(async()=>{
+    beforeAll(async ()=>{
         await prisma.user.deleteMany({
             where: {email: 'integration-test@jobops.com'}
         });

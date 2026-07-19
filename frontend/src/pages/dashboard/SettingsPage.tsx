@@ -5,6 +5,7 @@ import { DashboardLayout } from '../../components/layout/DashboardLayout'
 import { Card } from '../../components/ui/index'
 import { Input } from '../../components/ui/index'
 import { Button } from '../../components/ui/Button'
+import { UpgradeModal } from '../../components/UpgradeModal';
 import { cn } from '../../utils/utils'
 import { Link } from 'react-router-dom';
 import UsageBanner from '../../components/UsageBanner';
@@ -276,52 +277,81 @@ export default function SettingsPage() {
     reader.readAsDataURL(file)
   }
 
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+  const [modalPlan, setModalPlan] = useState<string>('');
+
   const handleSubscribe = async (plan: string) => {
     if (plan === currentPlan) {
       setSubscriptionMessage('You already have this plan active.')
       return
     }
-
-    setIsSubscribing(true)
-    setSubscriptionMessage('')
-
-    try {
-      const raw = localStorage.getItem('userInfo')
-      const token = raw ? JSON.parse(raw)?.token : null
-
-      const res = await fetch('/api/auth/subscribe', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: token ? `Bearer ${token}` : '',
-        },
-        body: JSON.stringify({ plan }),
-      })
-
-      const data = await res.json()
-      if (!res.ok) {
-        setSubscriptionMessage(data.message || 'Could not update plan.')
-        return
+    // For free plan downgrade, allow direct update
+    if (plan === 'Free') {
+      // existing downgrade flow (no payment)
+      setIsSubscribing(true);
+      setSubscriptionMessage('');
+      try {
+        const raw = localStorage.getItem('userInfo')
+        const token = raw ? JSON.parse(raw)?.token : null
+        const res = await fetch('/api/auth/subscribe', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: token ? `Bearer ${token}` : '',
+          },
+          body: JSON.stringify({ plan }),
+        })
+        const data = await res.json()
+        if (!res.ok) {
+          setSubscriptionMessage(data.message || 'Could not update plan.')
+          return
+        }
+        const rawStorage = localStorage.getItem('userInfo')
+        if (rawStorage) {
+          const parsed = JSON.parse(rawStorage)
+          parsed.plan = data.plan
+          if (parsed.user) parsed.user.plan = data.plan
+          localStorage.setItem('userInfo', JSON.stringify(parsed))
+        }
+        setCurrentPlan(plan)
+        setSelectedPlan(plan)
+        setSubscriptionMessage('Your plan has been updated successfully.')
+        window.dispatchEvent(new Event('userInfoUpdated'))
+      } catch (error) {
+        setSubscriptionMessage('Unable to update plan. Please try again.')
+      } finally {
+        setIsSubscribing(false)
       }
-
-      const rawStorage = localStorage.getItem('userInfo')
-      if (rawStorage) {
-        const parsed = JSON.parse(rawStorage)
-        parsed.plan = data.plan
-        if (parsed.user) parsed.user.plan = data.plan
-        localStorage.setItem('userInfo', JSON.stringify(parsed))
-      }
-
-      setCurrentPlan(plan)
-      setSelectedPlan(plan)
-      setSubscriptionMessage('Your plan has been updated successfully.')
-      window.dispatchEvent(new Event('userInfoUpdated'))
-    } catch (error) {
-      setSubscriptionMessage('Unable to update plan. Please try again.')
-    } finally {
-      setIsSubscribing(false)
+      return
     }
+    // For paid plans, open UpgradeModal to handle PayPal flow
+    setModalPlan(plan)
+    setShowUpgradeModal(true)
   }
+
+  const handleModalClose = () => {
+    setShowUpgradeModal(false)
+    // after successful upgrade, refresh current plan from backend
+    // optionally fetch updated user info here
+    const raw = localStorage.getItem('userInfo')
+    if (raw) {
+      const parsed = JSON.parse(raw)
+      const token = parsed?.token ?? parsed?.Token ?? null
+      if (token) {
+        fetch('/api/auth/profile', {
+          headers: { Authorization: `Bearer ${token}` },
+        })
+          .then(r => r.json())
+          .then(data => {
+            if (data?.user?.plan) {
+              setCurrentPlan(data.user.plan)
+              setSelectedPlan(data.user.plan)
+            }
+          })
+          .catch(console.error)
+      }
+    }
+  };
 
   return (
     <DashboardLayout>
