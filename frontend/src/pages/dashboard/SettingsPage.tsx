@@ -721,6 +721,13 @@ export default function SettingsPage() {
           )}
         </motion.div>
       </div>
+        {showUpgradeModal && (
+          <UpgradeModal
+            isOpen={showUpgradeModal}
+            onClose={handleModalClose}
+            title={`Upgrade to ${modalPlan} Plan`}
+          />
+        )}
     </DashboardLayout>
   )
 }
