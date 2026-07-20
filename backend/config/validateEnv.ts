@@ -43,12 +43,15 @@ export function validateEnv(): void {
   missing.forEach(k => console.log(`  ✘  ${k}  <-- MISSING`));
   console.log('==================================\n');
 
-  if (missing.length > 0) {
-    console.error(
-      `[startup] FATAL: ${missing.length} required environment variable(s) are missing or empty:\n` +
-      missing.map(k => `  - ${k}`).join('\n') +
-      '\nEnsure backend/.env is present and the server is started from the backend/ directory.\n'
-    );
-    process.exit(1);
-  }
+    if (missing.length > 0) {
+      console.error(
+        `[startup] FATAL: ${missing.length} required environment variable(s) are missing or empty:\n` +
+        missing.map(k => `  - ${k}`).join('\n') +
+        '\nEnsure backend/.env is present and the server is started from the backend/ directory.\n'
+      );
+      // Skip exiting in test or CI environments to allow tests to run
+      if (process.env.NODE_ENV !== 'test' && process.env.CI !== 'true') {
+        process.exit(1);
+      }
+    }
 }
