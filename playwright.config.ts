@@ -73,7 +73,7 @@ export default defineConfig({
   /* Run your local dev server before starting the tests */
   webServer: [
     {
-      command: 'powershell -NoProfile -ExecutionPolicy Bypass -Command "npm run dev --prefix backend"',
+      command: 'npm run dev --prefix backend',
       url: 'http://localhost:5000',
       reuseExistingServer: !process.env.CI,
       timeout: 120000,
