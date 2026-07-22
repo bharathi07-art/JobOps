@@ -1,12 +1,14 @@
 import express from 'express';
 import { authMiddleware} from '../middleware/authMiddleware'
-import { getProfile, subscribePlan, googleAuthCallback, githubAuthCallback, otpSend, verifyOTP, setOAuthPassword, changePassword, requestPasswordResetOTP, resetPasswordWithOTP } from '../controller/authController'
+import { getProfile, subscribePlan, googleAuthCallback, githubAuthCallback, otpSend, verifyOTP, setOAuthPassword, changePassword, requestPasswordResetOTP, resetPasswordWithOTP, updateProfile, getProfileImage } from '../controller/authController'
 const router = express.Router();
 
 //auth routes
 import passport from 'passport';
 
 router.get("/profile", authMiddleware, getProfile)
+router.put("/profile", authMiddleware, updateProfile)
+router.get("/profile/image", getProfileImage)
 router.post("/subscribe", authMiddleware, subscribePlan)
 router.post("/set-password", authMiddleware, setOAuthPassword)
 router.post("/change-password", authMiddleware, changePassword)

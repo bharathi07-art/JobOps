@@ -247,22 +247,65 @@ export default function SettingsPage() {
     }
   }
 
-  const handleSave = () => {
-    const raw = localStorage.getItem('userInfo')
-    if (raw) {
-      const parsed = JSON.parse(raw)
-      const key = parsed?.user ? 'user' : parsed?.User ? 'User' : null
-      if (key) {
-        parsed[key] = { ...parsed[key], name, email, role, avatar: currentAvatar }
-      } else {
-        parsed.name = name; parsed.email = email; parsed.role = role; parsed.avatar = currentAvatar
+  const handleSave = async () => {
+    try {
+      const raw = localStorage.getItem('userInfo')
+      const token = raw ? JSON.parse(raw)?.token : null
+
+      const res = await fetch('/api/auth/profile', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: token ? `Bearer ${token}` : '',
+        },
+        body: JSON.stringify({
+          name,
+          email,
+          avatar: currentAvatar
+        })
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        alert(data.message || 'Could not save profile changes.');
+        return;
       }
-      localStorage.setItem('userInfo', JSON.stringify(parsed))
+
+      const updatedUser = data.user;
+
+      if (raw) {
+        const parsed = JSON.parse(raw)
+        const key = parsed?.user ? 'user' : parsed?.User ? 'User' : null
+        if (key) {
+          parsed[key] = { ...parsed[key], name: updatedUser.name, email: updatedUser.email, avatar: updatedUser.avatar, role }
+        } else {
+          parsed.name = updatedUser.name;
+          parsed.email = updatedUser.email;
+          parsed.avatar = updatedUser.avatar;
+          parsed.role = role;
+        }
+        localStorage.setItem('userInfo', JSON.stringify(parsed))
+      }
+
+      setName(updatedUser.name);
+      setEmail(updatedUser.email);
+      if (updatedUser.avatar) {
+        if (updatedUser.avatar.startsWith('/api/auth/profile/image')) {
+          setUploadedAvatar(updatedUser.avatar);
+        } else {
+          setSelectedAvatar(updatedUser.avatar);
+          setUploadedAvatar(null);
+        }
+      }
+
+      // Notify Sidebar (same tab) to re-read localStorage immediately
+      window.dispatchEvent(new Event('userInfoUpdated'))
+      setSaved(true)
+      setTimeout(() => setSaved(false), 2000)
+    } catch (error) {
+      console.error('Failed to update profile:', error);
+      alert('Unable to save changes. Please check your connection and try again.');
     }
-    // Notify Sidebar (same tab) to re-read localStorage immediately
-    window.dispatchEvent(new Event('userInfoUpdated'))
-    setSaved(true)
-    setTimeout(() => setSaved(false), 2000)
   }
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {

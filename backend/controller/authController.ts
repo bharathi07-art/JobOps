@@ -7,6 +7,7 @@ import jwt from 'jsonwebtoken'
 import { getUserSubscription, updateSubscription } from '../services/subscriptionService';
 import dotenv from 'dotenv';
 import { json } from "node:stream/consumers";
+import ProfileImage from '../models/ProfileImage';
 dotenv.config();
 const JWT_SECRET = process.env.JWT_SECRET as string;
 
@@ -139,7 +140,6 @@ export const register = async (req:Request, res:Response):Promise<void>=>{
     });
     }
 }
-
 
 /*=================================
         Login
@@ -303,7 +303,7 @@ export const googleAuthCallback = async (req: Request, res: Response): Promise<v
     // Redirect to frontend with token and user info
     const hasPassword = user.password !== '';
     const sub = await getUserSubscription(user.id);
-    const frontendRedirectUrl = `http://localhost:3000/oauth-callback?token=${encodeURIComponent(token)}&id=${encodeURIComponent(user.id)}&isAdmin=${encodeURIComponent(user.isAdmin)}&plan=${encodeURIComponent(sub.subscriptionPlan)}&name=${encodeURIComponent(user.name)}&email=${encodeURIComponent(user.email)}&avatar=${encodeURIComponent(user.avatar || '')}&hasPassword=${encodeURIComponent(hasPassword)}`;
+    const frontendRedirectUrl = `http://localhost:5173/oauth-callback?token=${encodeURIComponent(token)}&id=${encodeURIComponent(user.id)}&isAdmin=${encodeURIComponent(user.isAdmin)}&plan=${encodeURIComponent(sub.subscriptionPlan)}&name=${encodeURIComponent(user.name)}&email=${encodeURIComponent(user.email)}&avatar=${encodeURIComponent(user.avatar || '')}&hasPassword=${encodeURIComponent(hasPassword)}`;
     res.redirect(frontendRedirectUrl);
   } catch (err: any) {
     res.status(500).json({ message: err.message });
@@ -331,7 +331,7 @@ export const githubAuthCallback = async (req: Request, res: Response): Promise<v
     // Redirect to frontend with token and user info
     const hasPassword = user.password !== '';
     const sub = await getUserSubscription(user.id);
-    const frontendRedirectUrl = `http://localhost:5173/oauth-callback?token=${encodeURIComponent(token)}&id=${encodeURIComponent(user.id)}&isAdmin=${encodeURIComponent(user.isAdmin)}&plan=${encodeURIComponent(sub.subscriptionPlan)}&name=${encodeURIComponent(user.name)}&email=${encodeURIComponent(user.email)}&avatar=${encodeURIComponent(user.avatar || '')}&hasPassword=${encodeURIComponent(hasPassword)}`;
+    const frontendRedirectUrl = `http://localhost:3000/oauth-callback?token=${encodeURIComponent(token)}&id=${encodeURIComponent(user.id)}&isAdmin=${encodeURIComponent(user.isAdmin)}&plan=${encodeURIComponent(sub.subscriptionPlan)}&name=${encodeURIComponent(user.name)}&email=${encodeURIComponent(user.email)}&avatar=${encodeURIComponent(user.avatar || '')}&hasPassword=${encodeURIComponent(hasPassword)}`;
     res.redirect(frontendRedirectUrl);
   } catch (err: any) {
     res.status(500).json({ message: err.message });
@@ -757,3 +757,98 @@ export const autoemail  = async(req:Request, res:Response)=>{
   {}
 }
   */
+
+export const updateProfile = async (req: Request, res: Response): Promise<Response> => {
+  try {
+    const userId = (req as any).user?.id;
+    if (!userId) {
+      return res.status(401).json({ message: 'Unauthorized' });
+    }
+
+    const { name, email, avatar } = req.body;
+    
+    // Check if user exists
+    const existingUser = await prisma.user.findUnique({
+      where: { id: Number(userId) }
+    });
+    if (!existingUser) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    // Check if email is being updated and is already taken
+    if (email && email !== existingUser.email) {
+      const emailTaken = await prisma.user.findUnique({
+        where: { email }
+      });
+      if (emailTaken) {
+        return res.status(400).json({ message: 'Email is already in use by another account.' });
+      }
+    }
+
+    let finalAvatarValue = existingUser.avatar;
+
+    if (avatar !== undefined) {
+      const matches = typeof avatar === 'string' ? avatar.match(/^data:(image\/[a-zA-Z0-9-.+]+);base64,(.+)$/) : null;
+      if (matches) {
+        const contentType = matches[1];
+        const imageData = matches[2];
+        
+        // Save to MongoDB
+        await ProfileImage.findOneAndUpdate(
+          { userId: Number(userId) },
+          { imageData, contentType },
+          { upsert: true, new: true }
+        );
+        
+        // Reference URL in SQL
+        finalAvatarValue = `/api/auth/profile/image?userId=${userId}&t=${Date.now()}`;
+      } else {
+        // If it's a regular string URL or empty
+        finalAvatarValue = avatar;
+        // Delete from MongoDB to save storage space
+        await ProfileImage.findOneAndDelete({ userId: Number(userId) });
+      }
+    }
+
+    // Update MySQL User details
+    const updatedUser = await prisma.user.update({
+      where: { id: Number(userId) },
+      data: {
+        name: name !== undefined ? name : existingUser.name,
+        email: email !== undefined ? email : existingUser.email,
+        avatar: finalAvatarValue
+      },
+      select: { id: true, name: true, email: true, plan: true, isAdmin: true, avatar: true }
+    });
+
+    const sub = await getUserSubscription(updatedUser.id);
+    (updatedUser as any).plan = sub.subscriptionPlan;
+
+    return res.status(200).json({ success: true, user: updatedUser });
+  } catch (err: any) {
+    return res.status(500).json({ message: err.message });
+  }
+};
+
+export const getProfileImage = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const userId = Number(req.query.userId);
+    if (!userId) {
+      res.status(400).json({ message: 'User ID is required' });
+      return;
+    }
+
+    const profileImage = await ProfileImage.findOne({ userId });
+    if (!profileImage || !profileImage.imageData) {
+      res.status(404).json({ message: 'Image not found' });
+      return;
+    }
+
+    const buffer = Buffer.from(profileImage.imageData, 'base64');
+    res.setHeader('Content-Type', profileImage.contentType || 'image/png');
+    res.setHeader('Cache-Control', 'public, max-age=86400');
+    res.send(buffer);
+  } catch (err: any) {
+    res.status(500).json({ message: err.message });
+  }
+};
