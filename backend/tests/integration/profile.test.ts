@@ -7,10 +7,18 @@ import ProfileImage from '../../models/ProfileImage';
 import connDB from '../../config/mDB';
 
 const JWT_SECRET = process.env.JWT_SECRET as string || 'jobopssecret';
+const MONGO_URI = process.env.MONGO_URI || process.env.DB_URI;
 
 jest.setTimeout(30000);
 
-describe('Profile Image & Update Integration Tests', () => {
+if (!MONGO_URI) {
+  describe('Profile Image & Update Integration Tests (Skipped)', () => {
+    test('skipped because MONGO_URI is not set', () => {
+      console.warn('Skipping Profile Image integration tests because MONGO_URI is not configured.');
+    });
+  });
+} else {
+  describe('Profile Image & Update Integration Tests', () => {
   let testUser: any;
   let authToken: string;
 
@@ -134,3 +142,4 @@ describe('Profile Image & Update Integration Tests', () => {
     expect(mongoDoc).toBeNull();
   });
 });
+}
