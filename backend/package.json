@@ -9,7 +9,7 @@
   "scripts": {
     "test": "jest",
     "build": "tsc --project tsconfig.json",
-    "start": "node dist/server.js",
+    "prestart": "npm run build",
     "dev": "nodemon --exec ts-node --cwd . server.ts",
     "seed-chat": "ts-node scripts/seedChatQA.ts",
     "populate-chat-answers": "ts-node scripts/populateChatAnswers.ts"
