@@ -216,6 +216,10 @@ jobs:
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     steps:
+      - name: Set lowercase repository name
+        id: repo
+        run: echo "repo=$(echo '${{ github.repository }}' | tr '[:upper:]' '[:lower:]')" >> "$GITHUB_OUTPUT"
+
       - name: Deploy to production server over SSH
         uses: appleboy/ssh-action@v1
         with:
@@ -225,8 +229,8 @@ jobs:
           script: |
             echo ${{ secrets.GITHUB_TOKEN }} | docker login ghcr.io -u ${{ github.actor }} --password-stdin
 
-            docker pull ghcr.io/${{ github.repository }}/backend:latest
-            docker pull ghcr.io/${{ github.repository }}/frontend:latest
+            docker pull ghcr.io/${{ steps.repo.outputs.repo }}/backend:latest
+            docker pull ghcr.io/${{ steps.repo.outputs.repo }}/frontend:latest
 
             docker stop jobops-backend-container || true
             docker rm jobops-backend-container || true
@@ -238,10 +242,10 @@ jobs:
               --env-file /home/deploy/.env \
               -p 5000:5000 \
               --restart unless-stopped \
-              ghcr.io/${{ github.repository }}/backend:latest
+              ghcr.io/${{ steps.repo.outputs.repo }}/backend:latest
 
             docker run -d \
               --name jobops-frontend-container \
               -p 80:80 \
               --restart unless-stopped \
-              ghcr.io/${{ github.repository }}/frontend:latest
+              ghcr.io/${{ steps.repo.outputs.repo }}/frontend:latest
