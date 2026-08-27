@@ -1,6 +1,6 @@
 import { useBfcacheHandler } from './hooks/useBfcacheHandler';
 import { useEffect } from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { HashRouter, Routes, Route, Navigate } from 'react-router-dom'
 import HomePage from './pages/HomePage'
 import Login from './componenets/Login'
 import Register from './componenets/Register'
@@ -101,7 +101,7 @@ function App() {
 
   return (
     <SubscriptionProvider>
-      <BrowserRouter>
+      <HashRouter>
         <Routes>
           {/* Public */}
           <Route path="/" element={<HomePage />} />
@@ -139,7 +139,7 @@ function App() {
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
         <AIChatbot />
-      </BrowserRouter>
+      </HashRouter>
     </SubscriptionProvider>
   )
 }

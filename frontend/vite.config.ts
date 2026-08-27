@@ -1,10 +1,20 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
+import electron from 'vite-plugin-electron/simple'
 
-// https://vite.dev/config/
 export default defineConfig({
-  plugins: [react(), tailwindcss()],
+  css: {
+    postcss: {} // Disables automatic PostCSS config searching
+  },
+  plugins: [
+    react(),
+    tailwindcss(),
+    electron({
+      main: { entry: 'electron/main.ts' }
+    })
+  ],
+  base: './',
   server: {
     host: true,
     proxy: {
