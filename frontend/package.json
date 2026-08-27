@@ -3,38 +3,74 @@
   "private": true,
   "version": "0.0.0",
   "type": "module",
+  "main": "dist-electron/main.js",
   "scripts": {
     "dev": "vite",
-    "build": "tsc -b && vite build",
+    "clean": "rimraf release dist dist-electron",
+    "build": "tsc -b && vite build && electron-builder",
     "lint": "eslint .",
     "preview": "vite preview"
+  
+},
+"dependencies": {
+  "@tailwindcss/vite": "^4.3.0",
+  "axios": "^1.16.0",
+  "clsx": "^2.1.1",
+  "framer-motion": "^12.38.0",
+  "lucide-react": "^1.14.0",
+  "react": "^19.2.5",
+  "react-dom": "^19.2.5",
+  "react-router-dom": "^7.15.0",
+  "tailwind-merge": "^3.6.0"
+},
+"devDependencies": {
+  "@eslint/js": "^10.0.1",
+  "@types/node": "^24.12.2",
+  "@types/react": "^19.2.14",
+  "@types/react-dom": "^19.2.3",
+  "@vitejs/plugin-react": "^6.0.1",
+  "electron": "^43.2.0",
+  "electron-builder": "^25.1.8",
+  "eslint": "^10.2.1",
+  "eslint-plugin-react-hooks": "^7.1.1",
+  "eslint-plugin-react-refresh": "^0.5.2",
+  "globals": "^17.5.0",
+  "tailwindcss": "^4.3.0",
+  "typescript": "~6.0.2",
+  "typescript-eslint": "^8.58.2",
+  "vite": "^8.0.10",
+  "vite-plugin-electron": "^1.1.0"
+},
+"build": {
+  "appId": "com.jobops.desktop",
+  "productName": "JobOps",
+  "directories": {
+    "output": "release"
   },
-  "dependencies": {
-    "@tailwindcss/vite": "^4.3.0",
-    "axios": "^1.16.0",
-    "clsx": "^2.1.1",
-    "framer-motion": "^12.38.0",
-    "lucide-react": "^1.14.0",
-    "react": "^19.2.5",
-    "react-dom": "^19.2.5",
-    "react-router-dom": "^7.15.0",
-    "tailwind-merge": "^3.6.0"
+  "files": [
+    "dist/**/*",
+    "dist-electron/**/*",
+    "src/assets/**/*"
+  ],
+  "win": {
+    "target": [
+      "nsis"
+    ],
+    "icon": "src/assets/JobOps.ico",
+    "verifyUpdateCodeSignature": false
   },
-  "devDependencies": {
-    "@eslint/js": "^10.0.1",
-    "@types/node": "^24.12.2",
-    "@types/react": "^19.2.14",
-    "@types/react-dom": "^19.2.3",
-    "@vitejs/plugin-react": "^6.0.1",
-    "autoprefixer": "^10.5.0",
-    "eslint": "^10.2.1",
-    "eslint-plugin-react-hooks": "^7.1.1",
-    "eslint-plugin-react-refresh": "^0.5.2",
-    "globals": "^17.5.0",
-    "postcss": "^8.5.14",
-    "tailwindcss": "^4.3.0",
-    "typescript": "~6.0.2",
-    "typescript-eslint": "^8.58.2",
-    "vite": "^8.0.10"
+  "nsis": {
+    "oneClick": false,
+    "allowToChangeInstallationDirectory": true,
+    "createDesktopShortcut": true,
+    "createStartMenuShortcut": true
+  },
+  "mac": {
+    "target": "dmg",
+    "icon": "src/assets/JobOps.ico"
+  },
+  "linux": {
+    "target": "AppImage",
+    "icon": "src/assets/JobOps.ico"
   }
-}
+} }

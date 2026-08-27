@@ -1,7 +1,7 @@
 {
   "name": "jobops",
   "version": "1.0.0",
-  "description": "🚀 AI-Powered Job Application Automation Platform — Project Summary\r 📌 Project Overview",
+  "description": " AI-Powered Job Application Automation Platform — Project Summary\r 📌 Project Overview",
   "main": "index.js",
   "directories": {
     "doc": "docs"
@@ -26,5 +26,5 @@
   },
   "dependencies": {
     "mongoose": "^9.7.4"
-  }
+  },
 }

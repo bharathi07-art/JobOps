@@ -331,7 +331,7 @@ export const githubAuthCallback = async (req: Request, res: Response): Promise<v
     // Redirect to frontend with token and user info
     const hasPassword = user.password !== '';
     const sub = await getUserSubscription(user.id);
-    const frontendRedirectUrl = `http://localhost:3000/oauth-callback?token=${encodeURIComponent(token)}&id=${encodeURIComponent(user.id)}&isAdmin=${encodeURIComponent(user.isAdmin)}&plan=${encodeURIComponent(sub.subscriptionPlan)}&name=${encodeURIComponent(user.name)}&email=${encodeURIComponent(user.email)}&avatar=${encodeURIComponent(user.avatar || '')}&hasPassword=${encodeURIComponent(hasPassword)}`;
+    const frontendRedirectUrl = `http://localhost:7173/oauth-callback?token=${encodeURIComponent(token)}&id=${encodeURIComponent(user.id)}&isAdmin=${encodeURIComponent(user.isAdmin)}&plan=${encodeURIComponent(sub.subscriptionPlan)}&name=${encodeURIComponent(user.name)}&email=${encodeURIComponent(user.email)}&avatar=${encodeURIComponent(user.avatar || '')}&hasPassword=${encodeURIComponent(hasPassword)}`;
     res.redirect(frontendRedirectUrl);
   } catch (err: any) {
     res.status(500).json({ message: err.message });
