@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import { Check, Crown, Star, Loader2 } from 'lucide-react';
+import { Check, Crown, Star,Sparkles, Loader2, X, Menu } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { Link, useNavigate } from 'react-router-dom';
+
 
 const PLANS = [
   {
@@ -74,6 +75,7 @@ export default function PricingPage() {
   const [currentPlan, setCurrentPlan] = useState<string>('Free');
   const subscribing: string | null = null;
   const [message, setMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
+  const [mobileOpen, setMobileOpen] = useState(false)
 
   useEffect(() => {
     try {
@@ -106,6 +108,46 @@ export default function PricingPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#FFF8F4] to-white">
+      {/* NAVE*/}
+        <nav className="fixed top-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-lg border-b border-gray-100">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex items-center justify-between h-16">
+              <Link to="/" className="flex items-center gap-2">
+                <div className="w-8 h-8 bg-[#FF4500] rounded-lg flex items-center justify-center">
+                  <Sparkles className="w-4 h-4 text-white" />
+                </div>
+                <span className="text-lg font-bold text-gray-900">JobOps</span>
+              </Link>
+
+              <div className="hidden md:flex items-center gap-8">
+                {['Features', 'How it Works', 'Pricing', 'Testimonials'].map(item => (
+                  <a key={item} href={`#${item.toLowerCase().replace(' ', '-')}`} className="text-sm text-gray-500 hover:text-gray-900 transition-colors">{item}</a>
+                ))}
+              </div>
+
+              <div className="hidden md:flex items-center gap-3">
+                <Link to="/login"><Button variant="ghost" size="sm">Sign In</Button></Link>
+                <Link to="/register"><Button size="sm">Get Started</Button></Link>
+              </div>
+
+              <button onClick={() => setMobileOpen(!mobileOpen)} className="md:hidden p-2 text-gray-500">
+                {mobileOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+              </button>
+            </div>
+          </div>
+
+          {mobileOpen && (
+            <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} className="md:hidden bg-white border-t border-gray-100 px-4 py-4 space-y-3">
+              {['Features', 'How it Works', 'Pricing', 'Testimonials'].map(item => (
+                <a key={item} href={`#${item.toLowerCase().replace(' ', '-')}`} onClick={() => setMobileOpen(false)} className="block text-sm text-gray-600 py-1">{item}</a>
+              ))}
+              <div className="flex gap-3 pt-2">
+                <Link to="/login" className="flex-1"><Button variant="secondary" size="sm" className="w-full">Sign In</Button></Link>
+                <Link to="/register" className="flex-1"><Button size="sm" className="w-full">Get Started</Button></Link>
+              </div>
+            </motion.div>
+          )}
+        </nav>
 
       {/* Header */}
       <motion.div

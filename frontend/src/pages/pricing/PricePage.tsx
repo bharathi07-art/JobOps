@@ -2,6 +2,9 @@ import { Link } from 'react-router-dom';
 import { Card } from '../../components/ui/index';
 import { Button } from '../../components/ui/Button';
 import { cn } from '../../utils/utils';
+import { motion } from 'framer-motion'
+import {useState} from 'react';
+import { Sparkles, Menu, X } from 'lucide-react'
 
 // Pricing data – keep in sync with backend subscription plans
 const pricingPlans = [
@@ -44,8 +47,10 @@ const pricingPlans = [
 ];
 
 export default function PricingPage() {
+
   return (
-    <div className="min-h-screen bg-gradient-to-b from-[#FFF8F4] to-white py-12">
+    <>
+      <div className="min-h-screen bg-gradient-to-b from-[#FFF8F4] to-white py-12">
       {/* Hero */}
       <div className="max-w-4xl mx-auto text-center mb-12">
         <h1 className="text-4xl font-extrabold text-gray-900 mb-4">
@@ -114,5 +119,7 @@ export default function PricingPage() {
         </Link>
       </div>
     </div>
+    </>
+    
   );
 }

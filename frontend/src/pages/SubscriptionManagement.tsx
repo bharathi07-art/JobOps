@@ -5,6 +5,10 @@ import { Calendar, CreditCard, Download, RotateCcw, AlertCircle, Check, ShieldCh
 import { Button } from '../components/ui/Button';
 import { PremiumBadge, SubscriptionStatusBar, UsageLimitIndicator } from '../components/PremiumComponents';
 import { BarChart } from '../components/ui/AdminCharts';
+import {Link} from 'react-router-dom';
+import {Sparkles, X, Menu} from 'lucide-react'
+
+
 
 interface Subscription {
   subscriptionPlan: string;
@@ -59,6 +63,7 @@ export default function SubscriptionManagement() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [paymentSuccessData, setPaymentSuccessData] = useState<{ transactionId: string | number } | null>(null);
   const [paymentError, setPaymentError] = useState<string | null>(null);
+  const [mobileOpen, setMobileOpen] = useState(false)
 
   const getAuthToken = () => {
     const token = localStorage.getItem('token');
@@ -145,6 +150,30 @@ export default function SubscriptionManagement() {
   const handleCvvChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value.replace(/\D/g, '').substring(0, 3);
     setCardCvv(value);
+  };
+
+  const handlePaypalCheckout = async () => {
+    setIsProcessing(true);
+    setPaymentError(null);
+    try {
+      const token = getAuthToken();
+      if (!token) { setPaymentError('Session expired. Please log in again.'); return; }
+      const res = await fetch('/api/payment/create-subscription', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ plan: planParam }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.approvalUrl) {
+        setPaymentError(data.message || 'Failed to initiate PayPal checkout.');
+        return;
+      }
+      window.location.href = data.approvalUrl;
+    } catch {
+      setPaymentError('Network error. Please try again.');
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   const handlePaymentSubmit = async (e: React.FormEvent) => {
@@ -253,9 +282,11 @@ export default function SubscriptionManagement() {
         'Priority email support'
       ]
     };
+    
 
     return (
       <div className="min-h-screen bg-gradient-to-br from-[#FFF8F4] to-white pb-20">
+        
         {/* Header */}
         <div className="bg-gradient-to-r from-[#FF4500] to-orange-400 text-white px-6 py-12">
           <h1 className="text-4xl font-bold mb-2">Secure Checkout</h1>
@@ -336,28 +367,26 @@ export default function SubscriptionManagement() {
               {/* Checkout Form Card */}
               <div className="md:col-span-3 bg-white rounded-2xl border border-gray-200 p-8 shadow-sm">
                 <h3 className="text-lg font-bold text-gray-900 mb-6">Select Payment Method</h3>
-                
+
                 {/* Method selector tab */}
                 <div className="grid grid-cols-2 gap-4 mb-8">
                   <button
                     type="button"
                     onClick={() => setPaymentType('card')}
-                    className={`h-12 rounded-xl border-2 font-semibold text-sm transition-all flex items-center justify-center gap-2 ${
-                      paymentType === 'card'
+                    className={`h-12 rounded-xl border-2 font-semibold text-sm transition-all flex items-center justify-center gap-2 ${paymentType === 'card'
                         ? 'border-[#FF4500] bg-orange-50/50 text-[#FF4500]'
                         : 'border-gray-200 bg-white text-gray-500 hover:bg-gray-50'
-                    }`}
+                      }`}
                   >
                     <CreditCard className="w-4 h-4" /> Credit Card
                   </button>
                   <button
                     type="button"
                     onClick={() => setPaymentType('paypal')}
-                    className={`h-12 rounded-xl border-2 font-semibold text-sm transition-all flex items-center justify-center gap-2 ${
-                      paymentType === 'paypal'
+                    className={`h-12 rounded-xl border-2 font-semibold text-sm transition-all flex items-center justify-center gap-2 ${paymentType === 'paypal'
                         ? 'border-[#FF4500] bg-orange-50/50 text-[#FF4500]'
                         : 'border-gray-200 bg-white text-gray-500 hover:bg-gray-50'
-                    }`}
+                      }`}
                   >
                     <span className="font-extrabold italic text-sm">PayPal</span>
                   </button>
@@ -462,7 +491,7 @@ export default function SubscriptionManagement() {
                     </p>
 
                     <Button
-                      onClick={handlePaymentSubmit}
+                      onClick={handlePaypalCheckout}
                       disabled={isProcessing}
                       className="w-full bg-[#FFC439] hover:bg-[#F2BA36] text-[#003087] font-extrabold py-3.5 px-6 rounded-xl flex items-center justify-center gap-1.5 border border-[#E5B22E] shadow-sm hover:shadow transition-all text-sm"
                     >
@@ -498,10 +527,51 @@ export default function SubscriptionManagement() {
   }
 
   // Normal Billing view
+  
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#FFF8F4] to-white">
+      {/* NAVE*/}
+        <nav className="fixed top-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-lg border-b border-gray-100">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex items-center justify-between h-16">
+              <Link to="/" className="flex items-center gap-2">
+                <div className="w-8 h-8 bg-[#FF4500] rounded-lg flex items-center justify-center">
+                  <Sparkles className="w-4 h-4 text-white" />
+                </div>
+                <span className="text-lg font-bold text-gray-900">JobOps</span>
+              </Link>
+
+              <div className="hidden md:flex items-center gap-8">
+                {['Features', 'How it Works', 'Pricing', 'Testimonials'].map(item => (
+                  <a key={item} href={`#${item.toLowerCase().replace(' ', '-')}`} className="text-sm text-gray-500 hover:text-gray-900 transition-colors">{item}</a>
+                ))}
+              </div>
+
+              <div className="hidden md:flex items-center gap-3">
+                <Link to="/login"><Button variant="ghost" size="sm">Sign In</Button></Link>
+                <Link to="/register"><Button size="sm">Get Started</Button></Link>
+              </div>
+
+              <button onClick={() => setMobileOpen(!mobileOpen)} className="md:hidden p-2 text-gray-500">
+                {mobileOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+              </button>
+            </div>
+          </div>
+
+          {mobileOpen && (
+            <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} className="md:hidden bg-white border-t border-gray-100 px-4 py-4 space-y-3">
+              {['Features', 'How it Works', 'Pricing', 'Testimonials'].map(item => (
+                <a key={item} href={`#${item.toLowerCase().replace(' ', '-')}`} onClick={() => setMobileOpen(false)} className="block text-sm text-gray-600 py-1">{item}</a>
+              ))}
+              <div className="flex gap-3 pt-2">
+                <Link to="/login" className="flex-1"><Button variant="secondary" size="sm" className="w-full">Sign In</Button></Link>
+                <Link to="/register" className="flex-1"><Button size="sm" className="w-full">Get Started</Button></Link>
+              </div>
+            </motion.div>
+          )}
+        </nav>
       {/* Header */}
-      <div className="bg-gradient-to-r from-[#FF4500] to-orange-400 text-white px-6 py-12">
+      <div className="bg-gradient-to-r from-[#FF4500] to-orange-400 text-white px-6 py-12 mt-10">
         <h1 className="text-4xl font-bold mb-4">Subscription & Billing</h1>
         <p className="text-white/90">Manage your subscription, view usage, and billing history</p>
       </div>
@@ -664,7 +734,7 @@ export default function SubscriptionManagement() {
                 className="bg-white rounded-2xl border border-gray-200 p-8 mb-8 shadow-sm"
               >
                 <h3 className="text-2xl font-bold text-gray-900 mb-6">Activity Overview</h3>
-                
+
                 <div className="grid md:grid-cols-2 gap-8 mb-8">
                   {/* Summary Stats */}
                   <div className="space-y-4">
@@ -711,7 +781,7 @@ export default function SubscriptionManagement() {
                 className="bg-white rounded-2xl border border-gray-200 p-8 shadow-sm"
               >
                 <h3 className="text-2xl font-bold text-gray-900 mb-6">Billing History</h3>
-                
+
                 <div className="overflow-x-auto">
                   <table className="w-full">
                     <thead>
@@ -736,13 +806,12 @@ export default function SubscriptionManagement() {
                             ${tx.amount?.toFixed(2) || '0.00'}
                           </td>
                           <td className="py-3 px-4 text-sm">
-                            <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${
-                              tx.status === 'completed'
+                            <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${tx.status === 'completed'
                                 ? 'bg-green-100 text-green-800'
                                 : tx.status === 'pending'
                                   ? 'bg-yellow-100 text-yellow-800'
                                   : 'bg-red-100 text-red-800'
-                            }`}>
+                              }`}>
                               {tx.status ? (tx.status.charAt(0).toUpperCase() + tx.status.slice(1)) : 'Pending'}
                             </span>
                           </td>
