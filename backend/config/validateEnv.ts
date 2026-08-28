@@ -23,6 +23,10 @@ const REQUIRED_KEYS: string[] = [
   'GITHUB_CLIENT_ID',
   'GITHUB_CLIENT_SECRET',
   'GITHUB_CALLBACK_URL',
+  'PAYPAL_CLIENT_ID',
+  'PAYPAL_CLIENT_SECRET',
+  'PAYPAL_MONTHLY_PLAN_ID',
+  'PAYPAL_YEARLY_PLAN_ID',
 ];
 
 export function validateEnv(): void {

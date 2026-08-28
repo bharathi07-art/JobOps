@@ -152,6 +152,30 @@ export default function SubscriptionManagement() {
     setCardCvv(value);
   };
 
+  const handlePaypalCheckout = async () => {
+    setIsProcessing(true);
+    setPaymentError(null);
+    try {
+      const token = getAuthToken();
+      if (!token) { setPaymentError('Session expired. Please log in again.'); return; }
+      const res = await fetch('/api/payment/create-subscription', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ plan: planParam }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.approvalUrl) {
+        setPaymentError(data.message || 'Failed to initiate PayPal checkout.');
+        return;
+      }
+      window.location.href = data.approvalUrl;
+    } catch {
+      setPaymentError('Network error. Please try again.');
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
   const handlePaymentSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (paymentType === 'card') {
@@ -467,7 +491,7 @@ export default function SubscriptionManagement() {
                     </p>
 
                     <Button
-                      onClick={handlePaymentSubmit}
+                      onClick={handlePaypalCheckout}
                       disabled={isProcessing}
                       className="w-full bg-[#FFC439] hover:bg-[#F2BA36] text-[#003087] font-extrabold py-3.5 px-6 rounded-xl flex items-center justify-center gap-1.5 border border-[#E5B22E] shadow-sm hover:shadow transition-all text-sm"
                     >
