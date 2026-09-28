@@ -10,7 +10,7 @@ import { Sparkles, Menu, X } from 'lucide-react'
 const pricingPlans = [
   {
     name: 'Free',
-    price: '$0',
+    price: '₹0',
     period: 'month',
     description: 'Perfect for getting started',
     features: [
@@ -22,7 +22,7 @@ const pricingPlans = [
   },
   {
     name: 'Monthly',
-    price: '$20',
+    price: '₹200',
     period: 'month',
     description: 'Unlimited AI matches & priority alerts',
     features: [
@@ -34,12 +34,12 @@ const pricingPlans = [
   },
   {
     name: 'Yearly',
-    price: '$220',
+    price: '₹2200',
     period: 'year',
     description: 'Best value – save $20 annually',
     features: [
       'Everything in Monthly',
-      'Save $20 annually',
+      'Save ₹200 annually',
       'Early access to referrals',
     ],
     popular: false,

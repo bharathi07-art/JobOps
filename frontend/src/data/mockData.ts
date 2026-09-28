@@ -153,7 +153,7 @@ export const testimonials = [
 export const pricingPlans = [
   {
     name: 'Free',
-    price: '$0',
+    price: '₹0',
     period: 'forever',
     features: ['4 AI searches/month', 'Resume-based job recommendations', 'Up to 10 matched jobs', 'Basic dashboard access'],
     cta: 'Get Started',
@@ -161,7 +161,7 @@ export const pricingPlans = [
   },
   {
     name: 'Monthly',
-    price: '$25',
+    price: '₹200',
     period: 'per month',
     features: ['2 AI searches per day', 'Unlimited monthly usage', 'Resume Analysis', 'Job Matching', 'AI Insights', 'ATS optimization', 'Priority support', 'Analytics dashboard'],
     cta: 'Get Pro Monthly',
@@ -169,7 +169,7 @@ export const pricingPlans = [
   },
   {
     name: 'Yearly',
-    price: '$250',
+    price: '₹2200',
     period: 'per year',
     features: ['2 AI searches per day', 'Unlimited yearly usage', 'Resume Analysis', 'Job Matching', 'AI Insights', 'ATS optimization', 'Priority support', 'Analytics dashboard', 'AI career roadmap', 'Save $50 annually', 'Save 16.7% vs monthly'],
     cta: 'Get Pro Yearly',
