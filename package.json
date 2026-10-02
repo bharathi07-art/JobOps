@@ -1,0 +1,30 @@
+{
+  "name": "jobops",
+  "version": "1.0.0",
+  "description": "🚀 AI-Powered Job Application Automation Platform — Project Summary\r 📌 Project Overview",
+  "main": "index.js",
+  "directories": {
+    "doc": "docs"
+  },
+  "scripts": {
+    "test": "npx playwright test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/bharathi07-art/JobOps.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/bharathi07-art/JobOps/issues"
+  },
+  "homepage": "https://github.com/bharathi07-art/JobOps#readme",
+  "devDependencies": {
+    "@playwright/test": "^1.60.0",
+    "@types/node": "^25.9.3"
+  },
+  "dependencies": {
+    "mongoose": "^9.7.4"
+  }
+}

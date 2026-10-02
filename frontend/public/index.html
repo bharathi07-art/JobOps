@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <!-- Prevent HTTP caching -->
+  <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0" />
+  <meta http-equiv="Pragma" content="no-cache" />
+  <meta http-equiv="Expires" content="0" />
+  <!-- Prevent Back‑Forward Cache (bfcache) on browsers that respect these tags -->
+  <meta name="referrer" content="no-referrer" />
+  <title>JobOps</title>
+  <!-- Inline script to immediately redirect if the page is restored from bfcache and the user is not authenticated -->
+  <script>
+    (function() {
+      // Simple auth check – look for the HttpOnly auth cookies (token / admin_token)
+      // Early detection of back‑forward navigation
+      var nav = performance.getEntriesByType('navigation')[0];
+      var isBackForward = nav && nav.type === 'back_forward';
+      var hasUserInfoNow = !!localStorage.getItem('userInfo');
+      if (isBackForward && !hasUserInfoNow) {
+        window.location.replace('/login');
+      }
+      // Fallback for browsers that fire pageshow after load
+      window.addEventListener('pageshow', function(e) {
+        var hasUserInfoNow = !!localStorage.getItem('userInfo');
+        if (e.persisted && !hasUserInfoNow) {
+          window.location.replace('/login');
+        }
+      });
+    })();
+  </script>
+</head>
+<body>
+  <div id="root"></div>
+</body>
+</html>

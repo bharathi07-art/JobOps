@@ -1,0 +1,49 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: jobops-backend-deployment
+  labels:
+    app: jobops-backend
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: jobops-backend
+  template:
+    metadata:
+      labels:
+        app: jobops-backend
+    spec:
+      containers:
+        - name: backend-container
+          image: jobops-backend:v2
+          imagePullPolicy: Never
+          ports:
+            - containerPort: 5000
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "250m"
+            limits:
+              memory: "1Gi"      # 🌟 Bumped to 1GB so ts-node has room to compile without crashing
+              cpu: "1000m"
+          envFrom:
+            - configMapRef:
+                name: backend-config
+                # NOTE: Do NOT add FORCE_PUBLIC_DNS to the backend-config ConfigMap.
+                # Kubernetes pods use the cluster's CoreDNS resolver, which handles
+                # mongodb+srv:// SRV lookups correctly. Setting FORCE_PUBLIC_DNS=true
+                # here would route DNS through 8.8.8.8/1.1.1.1, which may be blocked
+                # by NetworkPolicies or cloud firewall egress rules.
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: jobops-backend-service
+spec:
+  type: LoadBalancer
+  ports:
+    - port: 5000
+      targetPort: 5000
+  selector:
+    app: jobops-backend
