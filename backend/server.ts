@@ -24,13 +24,11 @@ import aiRoutes from "./routes/aiRoutes";
 import chatRoutes from "./routes/chatRoutes";
 import adminRoutes from "./routes/adminRoutes";
 import feedbackRoutes from "./routes/feedbackRoutes";
-import subscriptionRoutes from "./routes/subscriptionRoutes";
 import emailAutomationRoutes from "./routes/emailAutomationRoutes";
 import accountDeletionRoutes from "./routes/accountDeletionRoutes";
 import logoutRoute from "./routes/logoutRoute";
 import { startEmailAutomationScheduler } from "./scheduler/emailAutomationScheduler";
 import { runPermanentDeletionJob } from "./services/accountDeletionService";
-import payment from "./routes/PaymentRoutes";
 
 const app = express();
 export default app;
@@ -70,12 +68,10 @@ app.use("/api/jobresult", aiRoutes);
 app.use("/api/ai", chatRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/feedback", feedbackRoutes);
-app.use("/api/subscription", subscriptionRoutes);
 app.use("/api/email-automation", emailAutomationRoutes);
 app.use("/api/account", accountDeletionRoutes);
 app.use('/logout', logoutRoute);
 
-app.use("/api/payment", payment)
 
 // 404 catch-all for unknown routes
 app.use((_req: Request, res: Response) => {
