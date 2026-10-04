@@ -1,6 +1,5 @@
 import { useState, useCallback, useRef } from 'react'
-import { useSubscription } from '../../hooks/useSubscription'
-import { useUpgradePrompt } from '../../hooks/useUpgradePrompt'
+
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   Upload, FileText, CheckCircle, Sparkles, X,
@@ -64,27 +63,9 @@ export default function ResumePage() {
     }, 3000)
   }
 
-  const { isPremium, subscription, refreshSubscription } = useSubscription()
-  const {
-    checkAndPromptUpgrade,
-  } = useUpgradePrompt({ featureName: 'Resume Analysis' })
 
-  const analyzeFile = useCallback(async (file: File) => {
-    // Only hard-block if we are certain the user is on Free AND the upgrade check fails
-    // isPremium may still be false while the subscription context is loading, so
-    // we skip the gate when subscription hasn't resolved yet (isPremium === false but
-    // subscription object is null means still loading).
-    if (!isPremium && subscription !== null) {
-      // Check aiSearch limit only — not uploadResume (resume uploads are unlimited for the search feature)
-      const allowed = checkAndPromptUpgrade('aiSearch')
-      if (!allowed) return
-    }
 
-    setFileName(file.name)
-    setStage('uploading')
-    setUploadProgress(0)
-    setAiResult(null)
-    setErrorMsg('')
+
 
     // Simulate upload progress bar
     let prog = 0
@@ -95,82 +76,10 @@ export default function ResumePage() {
         clearInterval(uploadInterval)
         setStage('processing')
         startLoadingSteps()
-        sendToBackend(file)
+      
       }
     }, 120)
-  }, [isPremium, checkAndPromptUpgrade])
 
-  const sendToBackend = async (file: File) => {
-    try {
-      const formData = new FormData()
-      formData.append('resume', file)
-
-      // Attach auth token from localStorage
-      const rawUser = localStorage.getItem('userInfo')
-      const token = rawUser ? (JSON.parse(rawUser) as any).token : null
-      if (!token) {
-        setErrorMsg('Please sign in to analyze your resume.')
-        setStage('error')
-        return
-      }
-
-      const res = await axios.post('/api/jobresult/analyze', formData, {
-        headers: { 
-          'Content-Type': 'multipart/form-data',
-          Authorization: `Bearer ${token}`,
-        },
-        timeout: 120000,
-      })
-
-      if (stepTimerRef.current) clearInterval(stepTimerRef.current)
-
-      if (res.data.success) {
-        const raw: string = res.data.result
-        console.log('RAW AI RESPONSE:', raw.substring(0, 500))
-
-        let parsed: AIResult = {}
-        try {
-          // Strip any markdown code fences Gemini may add
-          const cleaned = raw
-            .replace(/^```json\s*/i, '')
-            .replace(/^```\s*/i, '')
-            .replace(/```\s*$/i, '')
-            .trim()
-          parsed = JSON.parse(cleaned)
-          console.log('PARSED RESULT:', parsed)
-        } catch (parseErr) {
-          console.error('JSON parse error:', parseErr)
-          console.log('Raw that failed to parse:', raw)
-          parsed = { recommendations: [raw] }
-        }
-
-        if (!parsed.matched_jobs || !Array.isArray(parsed.matched_jobs)) {
-          setErrorMsg('The AI returned an incomplete result. Please try again with a different resume file.')
-          setStage('error')
-          return
-        }
-
-        setAiResult(parsed)
-        localStorage.setItem('aiResumeResult', JSON.stringify(parsed))
-        localStorage.setItem('aiResumeTimestamp', new Date().toISOString())
-        // Save matched_jobs under the key that JobsPage reads from
-        localStorage.setItem('aiMatchedJobs', JSON.stringify(parsed.matched_jobs))
-        // Refresh subscription so usage counters update from DB
-        refreshSubscription().catch(() => {})
-        setStage('done')
-      } else {
-        console.error('Backend returned success:false', res.data)
-        setErrorMsg('Backend returned an error')
-        setStage('error')
-      }
-    } catch (err: any) {
-      if (stepTimerRef.current) clearInterval(stepTimerRef.current)
-      console.error('Request error:', err?.response?.data || err.message)
-      const message = err?.response?.data?.message || 'Failed to analyze resume. Please try again.'
-      setErrorMsg(message)
-      setStage('error')
-    }
-  }
 
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault()
@@ -195,7 +104,7 @@ export default function ResumePage() {
   const confirmAnalyze = () => {
     if (!pendingFile) return
     // proceed with the existing flow
-    analyzeFile(pendingFile)
+   
     setPendingFile(null)
   }
 
