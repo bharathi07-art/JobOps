@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 
-import { UpgradeBanner } from '../../utils/UpgradeBanner';
+
 import { motion, AnimatePresence } from 'framer-motion'
 import { Search, Filter, MapPin, Briefcase, Sparkles, TrendingUp, AlertCircle, ExternalLink, Bookmark, BookmarkCheck, X, CheckCircle2, Clock, BookmarkPlus, Globe, ChevronDown } from 'lucide-react';
 import { Link, useNavigate, useLocation } from 'react-router-dom'
@@ -165,18 +165,7 @@ export default function JobsPage() {
   }
 
   // Upgrade prompt for free plan users
-  if (upgradeInfo) {
-    return (
-      <DashboardLayout>
-        <UpgradeBanner
-          message={upgradeInfo.message}
-          requiredPlans={upgradeInfo.requiredPlans}
-          upgradeUrl={upgradeInfo.upgradeUrl}
-        />
-      </DashboardLayout>
-    );
-  }
-
+  
   const filtered = jobs.filter(job => {
     const matchesSearch =
       job.title.toLowerCase().includes(search.toLowerCase()) ||

@@ -5,10 +5,8 @@ import { Sparkles, ArrowRight, Briefcase, TrendingUp, Activity, AlertCircle, Map
 import { DashboardLayout } from '../../components/layout/DashboardLayout'
 import { Card, StatCard } from '../../components/ui/index'
 import { weeklyActivity } from '../../data/mockData'
-import { useSubscription } from '../../hooks/useSubscription'
 import SetPasswordModal from '../../components/SetPasswordModal'
-import UsageBanner from '../../components/UsageBanner'
-import SearchUsageVisualizer from '../../components/SearchUsageVisualizer'
+
 
 interface MatchedJob {
   title: string
@@ -118,8 +116,8 @@ export default function Dashboard() {
     fetchLatest();
   }, [])
 
-  const subscriptionContext = useSubscription()
-  const { isPremium } = subscriptionContext
+  
+  
 
   const jobs = aiResult?.matched_jobs ?? []
   const resumeScore = aiResult?.resume_score ?? 0
@@ -266,11 +264,7 @@ export default function Dashboard() {
         </div>
 
         {/* Usage limits and upgrade banner for free users */}
-        {!isPremium && (
-          <motion.div {...fadeUp(7)}>
-            <UsageBanner />
-          </motion.div>
-        )}
+        
 
         {/* Top Job Matches */}
         <motion.div {...fadeUp(8)}>

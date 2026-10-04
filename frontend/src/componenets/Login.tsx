@@ -4,7 +4,7 @@ import { motion } from 'framer-motion'
 import { Sparkles, Eye, EyeOff, Mail, Lock } from 'lucide-react'
 import { Button } from '../components/ui/Button'
 import { Input } from '../components/ui/index'
-import { useSubscription } from '../hooks/useSubscription'
+
 
 export default function Login() {
   const [email, setEmail] = useState<string>('')
@@ -12,7 +12,7 @@ export default function Login() {
   const [showPass, setShowPass] = useState<boolean>(false)
   const [loading, setLoading] = useState<boolean>(false)
   const navigate = useNavigate();
-  const { refreshSubscription } = useSubscription()
+  
 
   
 
@@ -33,7 +33,7 @@ export default function Login() {
         if(data.isAdmin){
           navigate('/admin/overview')
         }else{
-          try { await refreshSubscription() } catch(e) { /* ignore */ }
+          { /* ignore */ }
           navigate('/dashboard');
         }
       }

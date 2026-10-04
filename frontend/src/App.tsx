@@ -9,12 +9,9 @@ import ForgotPassword from './componenets/ForgotPassword'
 import VerifyOTP from './componenets/VerifyOTP'
 import OAuthCallback from './pages/OAuthCallback'
 import Dashboard from './pages/dashboard/Dashboard';
-import PricingPage from './pages/PricingPage';
 import ResumePage from './pages/dashboard/ResumePage'
 import TermsOfService from './pages/TermsOfService'
-import PrivacyPolicy from './pages/PrivacyPolicy'
-import { SubscriptionProvider } from './contexts/SubscriptionContext'
-import { useSubscription } from './hooks/useSubscription'
+
 import JobsPage from './pages/dashboard/JobsPage'
 import ApplicationsPage from './pages/dashboard/ApplicationsPage'
 import SavedJobsPage from './pages/dashboard/SavedJobsPage'
@@ -56,7 +53,7 @@ function AdminRequireAuth({ children }: { children: React.ReactNode }) {
 
 // ── User guard — blocks admin from accessing user dashboard ───────────────────
 function RequireAuth({ children }: { children: React.ReactNode }) {
-  const { loading } = useSubscription();
+  
   const userInfo = parseUserInfo();
 
   // If not authenticated, redirect to login immediately
@@ -64,14 +61,7 @@ function RequireAuth({ children }: { children: React.ReactNode }) {
     return <Navigate to="/login" replace />;
   }
 
-  // While checking subscription loading state, show spinner
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-[#FFF8F4]">
-        <div className="w-8 h-8 border-4 border-orange-100 border-t-[#FF4500] rounded-full animate-spin" />
-      </div>
-    );
-  }
+  
 
   // If admin, forward to admin area
   if (userInfo.isAdmin) {
@@ -100,7 +90,7 @@ function App() {
   }, []);
 
   return (
-    <SubscriptionProvider>
+  
       <BrowserRouter>
         <Routes>
           {/* Public */}
@@ -112,7 +102,7 @@ function App() {
           <Route path="/forgot-password" element={<ForgotPassword />} />
           <Route path="/oauth-callback" element={<OAuthCallback />} />
           <Route path="/terms-of-service" element={<TermsOfService />} />
-          <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+    
           {/* User Dashboard */}
           <Route path="/dashboard" element={<RequireAuth><Dashboard /></RequireAuth>} />
           <Route path="/dashboard/resume" element={<RequireAuth><ResumePage /></RequireAuth>} />
@@ -122,7 +112,7 @@ function App() {
           <Route path="/dashboard/analytics" element={<RequireAuth><AnalyticsPage /></RequireAuth>} />
           <Route path="/dashboard/feedback" element={<RequireAuth><FeedbackPage /></RequireAuth>} />
           <Route path="/dashboard/settings" element={<RequireAuth><SettingsPage /></RequireAuth>} />
-          <Route path="/pricing" element={<PricingPage />} />
+        
           <Route path="/dashboard/help" element={<RequireAuth><HelpCenterPage /></RequireAuth>} />
           <Route path="/dashboard/billing" element={<RequireAuth><SubscriptionManagement /></RequireAuth>} />
           <Route path="/dashboard/invoice/:id" element={<RequireAuth><InvoicePage /></RequireAuth>} />
@@ -140,7 +130,7 @@ function App() {
         </Routes>
         <AIChatbot />
       </BrowserRouter>
-    </SubscriptionProvider>
+
   )
 }
 
