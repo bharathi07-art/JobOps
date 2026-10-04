@@ -21,7 +21,7 @@ function Nav() {
           <div className="hidden md:flex items-center gap-8">
             <a href="#features" className="text-gray-500 hover:text-gray-900 transition-colors">Features</a>
             <a href="#how-it-works" className="text-gray-500 hover:text-gray-900 transition-colors">How it Works</a>
-            <a href="#pricing" className="text-gray-500 hover:text-gray-900 transition-colors">Pricing</a>
+            
           </div>
 
           {/* Desktop CTA */}
@@ -59,7 +59,7 @@ function Nav() {
           <div className="px-4 py-4 space-y-3">
             <a href="#features" className="block py-2 text-gray-500 hover:text-gray-900 transition-colors" onClick={() => setIsOpen(false)}>Features</a>
             <a href="#how-it-works" className="block py-2 text-gray-500 hover:text-gray-900 transition-colors" onClick={() => setIsOpen(false)}>How it Works</a>
-            <a href="#pricing" className="block py-2 text-gray-500 hover:text-gray-900 transition-colors" onClick={() => setIsOpen(false)}>Pricing</a>
+            
             <div className="pt-3 space-y-2 border-t border-gray-200">
               <Link to="/login" className="block w-full text-center px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors">
                 Sign In

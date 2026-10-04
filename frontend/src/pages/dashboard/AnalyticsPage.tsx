@@ -5,8 +5,7 @@ import { Send, TrendingUp, Star, Bookmark, Sparkles, Brain, Target, Activity } f
 import { DashboardLayout } from '../../components/layout/DashboardLayout'
 import { Card } from '../../components/ui/index'
 import { cn } from '../../utils/utils'
-import { useSubscription } from '../../contexts/SubscriptionContext'
-import { UpgradeBanner } from '../../utils/UpgradeBanner'
+
 
 interface AnalyticsData {
   totalMatched: number;
@@ -34,8 +33,8 @@ const statusColors: Record<string, string> = {
 }
 
 export default function AnalyticsPage() {
-  const { isPremium, loading } = useSubscription()
-  const [apiUpgradeInfo, setApiUpgradeInfo] = useState<{ message: string; requiredPlans: string[]; upgradeUrl: string } | null>(null)
+  
+  const [ setApiUpgradeInfo] = useState<{ message: string;  } | null>(null)
 
   // Initialize empty data structure
   const initialData: AnalyticsData = {
@@ -90,11 +89,7 @@ export default function AnalyticsPage() {
         });
       } catch (err: any) {
         if (err.response?.status === 403) {
-          setApiUpgradeInfo({
-            message: err.response?.data?.message || 'Upgrade required',
-            requiredPlans: err.response?.data?.requiredPlans || [],
-            upgradeUrl: err.response?.data?.upgradeUrl || '/dashboard/billing',
-          });
+         
         } else {
           console.error('Failed to fetch analytics data', err);
         }
@@ -114,7 +109,7 @@ export default function AnalyticsPage() {
 
   const isEmpty = !data.hasAiData && !data.hasApps && data.savedCount === 0
 
-  if (loading) {
+  if (false) {
     return (
       <DashboardLayout>
         <div className="flex items-center justify-center min-h-[50vh]">
@@ -124,17 +119,7 @@ export default function AnalyticsPage() {
     )
   }
 
-    if (!isPremium) {
-      return (
-        <DashboardLayout>
-          <UpgradeBanner
-            message={apiUpgradeInfo?.message || 'Upgrade required to access analytics'}
-            requiredPlans={apiUpgradeInfo?.requiredPlans || []}
-            upgradeUrl={apiUpgradeInfo?.upgradeUrl || '/pricing'}
-          />
-        </DashboardLayout>
-      );
-    }
+    
 
   const statCards = [
     { label: 'Jobs Matched', value: data.totalMatched, icon: Sparkles, color: 'text-[#FF4500]', note: data.hasAiData ? 'From AI analysis' : 'No resume analyzed yet' },

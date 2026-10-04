@@ -1,8 +1,8 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { Upload, Sparkles, ArrowRight, Check, Star, Zap, Target, Brain, Shield, Menu, X, ChevronRight } from 'lucide-react'
-import { testimonials, pricingPlans } from '../data/mockData'
+import { Upload, Sparkles, ArrowRight, Star, Zap, Target, Brain, Shield, Menu, X, ChevronRight } from 'lucide-react'
+import { testimonials} from '../data/mockData'
 import { Button } from '../components/ui/Button'
 
 const features = [
@@ -34,7 +34,7 @@ export default function HomePage() {
             </Link>
 
             <div className="hidden md:flex items-center gap-8">
-              {['Features', 'How it Works', 'Pricing', 'Testimonials'].map(item => (
+              {['Features', 'How it Works',  'Testimonials'].map(item => (
                 <a key={item} href={`#${item.toLowerCase().replace(' ', '-')}`} className="text-sm text-gray-500 hover:text-gray-900 transition-colors">{item}</a>
               ))}
             </div>
@@ -52,7 +52,7 @@ export default function HomePage() {
 
         {mobileOpen && (
           <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} className="md:hidden bg-white border-t border-gray-100 px-4 py-4 space-y-3">
-            {['Features', 'How it Works', 'Pricing', 'Testimonials'].map(item => (
+            {['Features', 'How it Works',  'Testimonials'].map(item => (
               <a key={item} href={`#${item.toLowerCase().replace(' ', '-')}`} onClick={() => setMobileOpen(false)} className="block text-sm text-gray-600 py-1">{item}</a>
             ))}
             <div className="flex gap-3 pt-2">
@@ -141,7 +141,7 @@ export default function HomePage() {
                 </div>
               </div>
 
-              <motion.div animate={{ y: [0, -8, 0] }} transition={{ duration: 3, repeat: Infinity }} className="absolute -top-4 -right-4 bg-white rounded-xl shadow-lg border border-gray-100 p-3">
+              <motion.div animate={{ y: [0, -8, 0] }} transition={{ duration: 3, repeat: Infinity }} className="absolute -top-10 -right-4 bg-white rounded-xl shadow-lg border border-gray-100 p-3">
                 <div className="flex items-center gap-2">
                   <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
                     <Sparkles className="w-4 h-4 text-green-600" />
@@ -191,6 +191,13 @@ export default function HomePage() {
               { step: '01', title: 'Upload Resume', desc: 'Drag and drop your resume. Our AI instantly parses and analyzes your skills and experience.' },
               { step: '02', title: 'AI Matching', desc: 'Our AI scans thousands of jobs and finds the best matches based on your unique profile.' },
               { step: '03', title: 'Apply & Track', desc: 'Apply with one click and track all your applications in our smart Kanban board.' },
+              { step: '04', title: 'Mail automation', desc: 'By turn on this feature you can recieve an job search mail with new opportunities' },
+              { step: '05', title: 'Analysis', desc: 'You have Analysis page to know and crt the skill gap and overall performence of you Resume' },
+              { step: '06', title: 'API key', desc: 'You can decide which AI model make search , find jobs, and let you the skill gap for you!!' },
+
+
+
+
             ].map((item, i) => (
               <motion.div key={item.step} variants={fadeUp} custom={i} initial="hidden" whileInView="visible" viewport={{ once: true }} className="text-center">
                 <div className="w-16 h-16 bg-[#FF4500] rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-lg shadow-orange-200">
@@ -231,43 +238,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Pricing */}
-      <section id="pricing" className="py-20 px-4 bg-[#FFF8F4]">
-        <div className="max-w-7xl mx-auto">
-          <motion.div variants={fadeUp} initial="hidden" whileInView="visible" viewport={{ once: true }} className="text-center mb-16">
-            <h2 className="text-4xl font-bold text-gray-900">Simple, transparent pricing</h2>
-            <p className="mt-4 text-lg text-gray-500">Start free, upgrade when you're ready</p>
-          </motion.div>
-          <div className="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto">
-            {pricingPlans.map((plan, i) => (
-              <motion.div key={plan.name} variants={fadeUp} custom={i} initial="hidden" whileInView="visible" viewport={{ once: true }}
-                className={`relative p-6 rounded-2xl border-2 transition-all ${plan.popular ? 'border-[#FF4500] shadow-xl shadow-orange-100' : 'border-gray-100 hover:border-gray-200'}`}>
-                {plan.popular && (
-                  <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-4 py-1 bg-[#FF4500] text-white text-xs font-semibold rounded-full">Most Popular</div>
-                )}
-                <div className="mb-6">
-                  <h3 className="text-lg font-bold text-gray-900">{plan.name}</h3>
-                  <div className="mt-2 flex items-baseline gap-1">
-                    <span className="text-4xl font-bold text-gray-900">{plan.price}</span>
-                    <span className="text-gray-400 text-sm">/{plan.period}</span>
-                  </div>
-                </div>
-                <ul className="space-y-3 mb-8">
-                  {plan.features.map(f => (
-                    <li key={f} className="flex items-center gap-2 text-sm text-gray-600">
-                      <Check className="w-4 h-4 text-[#FF4500] shrink-0" />
-                      {f}
-                    </li>
-                  ))}
-                </ul>
-                <Link to="/register">
-                  <Button variant={plan.popular ? 'primary' : 'secondary'} className="w-full">{plan.cta}</Button>
-                </Link>
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      </section>
+
 
       {/* CTA */}
       <section className="py-20 px-4 bg-[#FF4500]">

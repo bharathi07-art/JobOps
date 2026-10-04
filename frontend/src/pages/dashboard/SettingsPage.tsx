@@ -8,8 +8,7 @@ import { Button } from '../../components/ui/Button'
 import { UpgradeModal } from '../../components/UpgradeModal';
 import { cn } from '../../utils/utils'
 import { Link } from 'react-router-dom';
-import UsageBanner from '../../components/UsageBanner';
-import SearchUsageVisualizer from '../../components/SearchUsageVisualizer';
+
 import DeleteAccountSection from '../../components/DeleteAccountSection';
 
 // Read real user from localStorage — never fall back to mockUser

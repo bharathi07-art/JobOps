@@ -2,8 +2,7 @@ import { useState, useEffect } from "react"
 import { Link, useLocation } from "react-router-dom"
 import { motion, AnimatePresence } from "framer-motion"
 import { LayoutDashboard, Upload, Sparkles, Bookmark, Activity, Settings, User, LogOut, Menu, X, MessageSquare, ClipboardList, HelpCircle, Lock } from "lucide-react"
-import { useSubscription } from "../../hooks/useSubscription"
-import { useUpgradePrompt } from "../../hooks/useUpgradePrompt"
+
 import { cn } from "../../utils/utils"
 
 const navItems = [
@@ -32,8 +31,7 @@ function SideBar() {
   const { pathname } = useLocation()
   const [isMobileOpen, setIsMobileOpen] = useState(false)
   const [user, setUser] = useState(parseUser)
-  const { isPremium } = useSubscription()
-  const { showUpgradeModal } = useUpgradePrompt({})
+
 
   // Re-read whenever Settings saves to localStorage
   useEffect(() => {
@@ -103,11 +101,11 @@ function SideBar() {
                         const premiumRoutes = ["/dashboard/upload", "/dashboard/jobs", "/dashboard/saved", "/dashboard/applications"]
                         const isPremiumRoute = premiumRoutes.includes(item.to)
 
-                        if (isPremiumRoute && !isPremium) {
+                        if (isPremiumRoute) {
                           return (
                             <button
                               key={item.to}
-                              onClick={() => showUpgradeModal('feature-locked', item.label)}
+                              
                               className={cn(
                                 "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors text-gray-500 hover:text-gray-900 hover:bg-gray-50",
                                 isActive ? "bg-orange-50 text-[#FF4500]" : ''
